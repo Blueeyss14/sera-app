@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:sera_app/pages/pagee_test.dart';
+import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import 'res/colors.dart';
+import 'res/constant.dart';
+import 'src/routes/app_pages.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -10,6 +16,21 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: PageeTest(), debugShowCheckedModeBanner: false);
+    return GetMaterialApp(
+      title: AppStrings.appName,
+      debugShowCheckedModeBanner: false,
+      initialRoute: AppPages.initial,
+      getPages: AppPages.routes,
+      theme: ThemeData(
+        useMaterial3: true,
+        fontFamily: GoogleFonts.poppins().fontFamily,
+        scaffoldBackgroundColor: ColorValues.background,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: ColorValues.primary,
+          primary: ColorValues.primary,
+          surface: ColorValues.background,
+        ),
+      ),
+    );
   }
 }
