@@ -404,22 +404,165 @@ class TodayScheduleResponse {
   }
 }
 
+class AdherenceDay {
+  final String date;
+  final int done;
+  final int total;
+
+  AdherenceDay({required this.date, required this.done, required this.total});
+
+  factory AdherenceDay.fromJson(Map<String, dynamic> json) {
+    return AdherenceDay(
+      date: json['date'] as String? ?? '',
+      done: json['done'] as int? ?? 0,
+      total: json['total'] as int? ?? 0,
+    );
+  }
+}
+
+class AdherenceTrendPoint {
+  final String date;
+  final int? medication;
+  final int? activity;
+
+  AdherenceTrendPoint({required this.date, this.medication, this.activity});
+
+  factory AdherenceTrendPoint.fromJson(Map<String, dynamic> json) {
+    return AdherenceTrendPoint(
+      date: json['date'] as String? ?? '',
+      medication: json['medication'] as int?,
+      activity: json['activity'] as int?,
+    );
+  }
+}
+
+class AdherenceTrendSummary {
+  final int? medicationAverage;
+  final int? activityAverage;
+  final Map<String, dynamic>? lowest;
+
+  AdherenceTrendSummary({this.medicationAverage, this.activityAverage, this.lowest});
+
+  factory AdherenceTrendSummary.fromJson(Map<String, dynamic> json) {
+    return AdherenceTrendSummary(
+      medicationAverage: json['medicationAverage'] as int?,
+      activityAverage: json['activityAverage'] as int?,
+      lowest: json['lowest'] as Map<String, dynamic>?,
+    );
+  }
+}
+
 class AdherenceMetricsResponse {
   final String patientId;
   final int adherencePercentage;
   final int streak;
+  final List<AdherenceDay> days;
+  final List<AdherenceTrendPoint> trend;
+  final AdherenceTrendSummary? summary;
 
   AdherenceMetricsResponse({
     required this.patientId,
     required this.adherencePercentage,
     required this.streak,
+    this.days = const [],
+    this.trend = const [],
+    this.summary,
   });
 
   factory AdherenceMetricsResponse.fromJson(Map<String, dynamic> json) {
+    final daysList = json['days'] as List<dynamic>? ?? [];
+    final trendList = json['trend'] as List<dynamic>? ?? [];
+
     return AdherenceMetricsResponse(
       patientId: json['patientId']?.toString() ?? '',
       adherencePercentage: json['adherencePercentage'] as int? ?? 0,
       streak: json['streak'] as int? ?? 0,
+      days: daysList.map((e) => AdherenceDay.fromJson(e as Map<String, dynamic>)).toList(),
+      trend: trendList.map((e) => AdherenceTrendPoint.fromJson(e as Map<String, dynamic>)).toList(),
+      summary: json['summary'] != null
+          ? AdherenceTrendSummary.fromJson(json['summary'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+}
+
+class DailyWearableData {
+  final int steps;
+  final int heartRateResting;
+  final int heartRateMin;
+  final int heartRateMax;
+  final int sleepMinutes;
+  final int spo2;
+
+  DailyWearableData({
+    required this.steps,
+    required this.heartRateResting,
+    required this.heartRateMin,
+    required this.heartRateMax,
+    required this.sleepMinutes,
+    required this.spo2,
+  });
+
+  factory DailyWearableData.fromJson(Map<String, dynamic> json) {
+    final stepsMap = json['steps'] as Map<String, dynamic>?;
+    final hrMap = json['heartRate'] as Map<String, dynamic>?;
+    final sleepMap = json['sleep'] as Map<String, dynamic>?;
+    final spo2Map = json['spo2'] as Map<String, dynamic>?;
+
+    return DailyWearableData(
+      steps: stepsMap?['total'] as int? ?? 0,
+      heartRateResting: hrMap?['resting'] as int? ?? 72,
+      heartRateMin: hrMap?['min'] as int? ?? 60,
+      heartRateMax: hrMap?['max'] as int? ?? 115,
+      sleepMinutes: sleepMap?['totalMinutes'] as int? ?? 420,
+      spo2: spo2Map?['average'] as int? ?? 97,
+    );
+  }
+}
+
+class FeedbackEntry {
+  final String id;
+  final String patientId;
+  final String userId;
+  final String? doctorId;
+  final String category;
+  final String message;
+  final String status;
+  final String? resolvedAt;
+  final String? resolvedBy;
+  final String createdAt;
+  final String? patientName;
+  final String? doctorName;
+
+  FeedbackEntry({
+    required this.id,
+    required this.patientId,
+    required this.userId,
+    this.doctorId,
+    required this.category,
+    required this.message,
+    required this.status,
+    this.resolvedAt,
+    this.resolvedBy,
+    required this.createdAt,
+    this.patientName,
+    this.doctorName,
+  });
+
+  factory FeedbackEntry.fromJson(Map<String, dynamic> json) {
+    return FeedbackEntry(
+      id: json['id'] as String? ?? '',
+      patientId: json['patientId'] as String? ?? json['patient_id'] as String? ?? '',
+      userId: json['userId'] as String? ?? json['user_id'] as String? ?? '',
+      doctorId: json['doctorId'] as String? ?? json['doctor_id'] as String?,
+      category: json['category'] as String? ?? 'other',
+      message: json['message'] as String? ?? '',
+      status: json['status'] as String? ?? 'open',
+      resolvedAt: json['resolvedAt'] as String? ?? json['resolved_at'] as String?,
+      resolvedBy: json['resolvedBy'] as String? ?? json['resolved_by'] as String?,
+      createdAt: json['createdAt'] as String? ?? json['created_at'] as String? ?? '',
+      patientName: json['patientName'] as String? ?? json['patient_name'] as String?,
+      doctorName: json['doctorName'] as String? ?? json['doctor_name'] as String?,
     );
   }
 }
@@ -464,11 +607,13 @@ class WearableStatus {
   final bool isConnected;
   final String? deviceName;
   final String? lastSyncAt;
+  final String? connectedAt;
 
   WearableStatus({
     required this.isConnected,
     this.deviceName,
     this.lastSyncAt,
+    this.connectedAt,
   });
 
   factory WearableStatus.fromJson(Map<String, dynamic> json) {
@@ -477,6 +622,108 @@ class WearableStatus {
       isConnected: json['isConnected'] == true,
       deviceName: conn?['deviceName']?.toString(),
       lastSyncAt: conn?['lastSyncAt']?.toString(),
+      connectedAt: conn?['connectedAt']?.toString(),
+    );
+  }
+}
+
+class MetricStat {
+  final String key;
+  final String label;
+  final String value;
+  final String unit;
+
+  MetricStat({
+    required this.key,
+    required this.label,
+    required this.value,
+    required this.unit,
+  });
+
+  factory MetricStat.fromJson(Map<String, dynamic> json) {
+    return MetricStat(
+      key: json['key']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      value: json['value']?.toString() ?? '',
+      unit: json['unit']?.toString() ?? '',
+    );
+  }
+}
+
+class TrendPoint {
+  final String key;
+  final String label;
+  final num? value;
+  final num? low;
+  final num? high;
+
+  TrendPoint({
+    required this.key,
+    required this.label,
+    this.value,
+    this.low,
+    this.high,
+  });
+
+  factory TrendPoint.fromJson(Map<String, dynamic> json) {
+    return TrendPoint(
+      key: json['key']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      value: json['value'] as num?,
+      low: json['low'] as num?,
+      high: json['high'] as num?,
+    );
+  }
+}
+
+class MetricTrend {
+  final List<TrendPoint> points;
+  final MetricStat headline;
+  final List<MetricStat> stats;
+
+  MetricTrend({
+    required this.points,
+    required this.headline,
+    required this.stats,
+  });
+
+  factory MetricTrend.fromJson(Map<String, dynamic> json) {
+    final pointsList = json['points'] as List<dynamic>? ?? [];
+    final statsList = json['stats'] as List<dynamic>? ?? [];
+    final headlineMap = json['headline'] as Map<String, dynamic>? ?? {};
+
+    return MetricTrend(
+      points: pointsList.map((e) => TrendPoint.fromJson(e as Map<String, dynamic>)).toList(),
+      headline: MetricStat.fromJson(headlineMap),
+      stats: statsList.map((e) => MetricStat.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
+}
+
+class WearableDayTrends {
+  final MetricTrend? steps;
+  final MetricTrend? heartRate;
+  final MetricTrend? sleep;
+  final MetricTrend? spo2;
+
+  WearableDayTrends({
+    this.steps,
+    this.heartRate,
+    this.sleep,
+    this.spo2,
+  });
+
+  factory WearableDayTrends.fromJson(Map<String, dynamic> json) {
+    final stepsMap = json['steps'] as Map<String, dynamic>?;
+    final hrMap = (json['heart-rate'] ?? json['heartRate']) as Map<String, dynamic>?;
+    final sleepMap = json['sleep'] as Map<String, dynamic>?;
+    final spo2Map = json['spo2'] as Map<String, dynamic>?;
+
+    return WearableDayTrends(
+      steps: stepsMap != null ? MetricTrend.fromJson(stepsMap) : null,
+      heartRate: hrMap != null ? MetricTrend.fromJson(hrMap) : null,
+      sleep: sleepMap != null ? MetricTrend.fromJson(sleepMap) : null,
+      spo2: spo2Map != null ? MetricTrend.fromJson(spo2Map) : null,
     );
   }
 }

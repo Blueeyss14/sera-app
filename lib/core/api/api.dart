@@ -200,42 +200,73 @@ class ApiService {
   // Wearable (Smartwatch)
   // ==========================================
 
+  Future<void> connectWearable([String? deviceName]) async {
+    final url = Uri.parse('$_baseUrl/patient/wearable/connect');
+    final body = jsonEncode({
+      'deviceName': deviceName ?? 'HUAWEI Band 9',
+      'deviceModel': 'KIM-B19',
+    });
+    await _post(url, body: body);
+  }
+
   Future<WearableStatus> getWearableStatus() async {
     final url = Uri.parse('$_baseUrl/patient/wearable/status');
     final resData = await _get(url);
     return WearableStatus.fromJson(resData['data'] as Map<String, dynamic>);
   }
 
-  Future<void> syncWearable() async {
+  Future<void> syncWearable([String? deviceName]) async {
     final url = Uri.parse('$_baseUrl/patient/wearable/sync');
-    final body = jsonEncode({
-      'deviceName': 'HUAWEI Band 9 (sera-1)',
-      'steps': {'total': 6420, 'hourly': [200, 450, 600, 800, 1200, 1500, 1670]},
-      'heartRate': {'resting': 72, 'min': 62, 'max': 118, 'hourly': [70, 75, 82, 78, 85, 74]},
-      'sleep': {
-        'totalMinutes': 430,
-        'napMinutes': 30,
-        'stages': {'deep': 120, 'light': 180, 'rem': 90, 'awake': 40},
-        'bedtime': '22:30',
-        'wakeTime': '06:00',
-      },
-      'spo2': {
-        'average': 98,
-        'min': 95,
-        'max': 99,
-        'readings': [
-          {'time': '07:00', 'value': 98},
-          {'time': '12:00', 'value': 99},
-          {'time': '18:00', 'value': 97},
-        ],
-      },
-    });
+    final body = jsonEncode(deviceName != null && deviceName.isNotEmpty ? {'deviceName': deviceName} : {});
     await _post(url, body: body);
   }
 
   Future<void> disconnectWearable() async {
     final url = Uri.parse('$_baseUrl/patient/wearable/disconnect');
     await _post(url);
+  }
+
+  Future<DailyWearableData?> getDailyWearable([String? date]) async {
+    final q = date != null && date.isNotEmpty ? '?date=$date' : '';
+    final url = Uri.parse('$_baseUrl/patient/wearable/daily$q');
+    try {
+      final resData = await _get(url);
+      final data = resData['data'];
+      if (data == null) return null;
+      return DailyWearableData.fromJson(data as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<WearableDayTrends?> getWearableDayTrends([String? anchorDate]) async {
+    final q = anchorDate != null && anchorDate.isNotEmpty ? '&anchor=$anchorDate' : '';
+    final url = Uri.parse('$_baseUrl/patient/wearable/trends?period=day$q');
+    try {
+      final resData = await _get(url);
+      final data = resData['data'];
+      if (data == null) return null;
+      return WearableDayTrends.fromJson(data as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<FeedbackEntry>> getFeedbacks() async {
+    final url = Uri.parse('$_baseUrl/patient/feedback');
+    try {
+      final resData = await _get(url);
+      final list = resData['data'] as List<dynamic>? ?? [];
+      return list.map((e) => FeedbackEntry.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> sendFeedback({required String category, required String message}) async {
+    final url = Uri.parse('$_baseUrl/patient/feedback');
+    final body = jsonEncode({'category': category, 'message': message});
+    await _post(url, body: body);
   }
 
   // ==========================================
