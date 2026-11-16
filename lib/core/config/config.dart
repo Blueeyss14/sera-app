@@ -1,4 +1,7 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class BaseConfigs {
-  static final baseUrl = '';
-  static final login = '';
+  BaseConfigs._();
+
+  static final String baseUrl = dotenv.env['BASE_URL']!;
 }

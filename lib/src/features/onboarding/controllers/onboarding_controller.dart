@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../../res/assets.dart';
 import '../../../../res/constant.dart';
+import '../../../routes/app_routes.dart';
 import '../models/onboarding_item.dart';
 
 class OnboardingController extends GetxController {
@@ -44,7 +45,7 @@ class OnboardingController extends GetxController {
         curve: Curves.easeInOutCubic,
       );
     } else {
-      // Last page ("Get Started") - does nothing for now as per instructions
+      Get.toNamed(AppRoutes.auth);
     }
   }
 
