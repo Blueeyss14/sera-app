@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/models/patient_models.dart';
 import '../../../../res/assets.dart';
 import '../../../../res/colors.dart';
+import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/mascot_animations.dart';
 import '../../../shared/widgets/ring_ornament.dart';
 import '../../main/controllers/main_controller.dart';
@@ -44,20 +45,29 @@ class TodayView extends GetView<TodayController> {
                 children: [
                   _buildHeader(),
                   const SizedBox(height: 20),
-                  if (sched?.nextReminder != null) ...[
-                    _buildNextReminderCard(sched!.nextReminder!),
+                  if (plan != null) ...[
+                    if (sched?.nextReminder != null) ...[
+                      _buildNextReminderCard(sched!.nextReminder!),
+                      const SizedBox(height: 24),
+                    ],
+                    _buildScheduleSection(sched),
                     const SizedBox(height: 24),
+                    _buildAchievementsCard(streak),
+                    const SizedBox(height: 20),
+                    _buildDietGuideCard(plan),
+                    const SizedBox(height: 20),
+                    _buildFollowUpCard(plan),
+                    const SizedBox(height: 20),
+                    _buildReportPromptLink(),
+                    const SizedBox(height: 32),
+                  ] else ...[
+                    const EmptyState(
+                      title: 'No active care plan yet',
+                      description:
+                          'Medication schedules and activities will appear here once your doctor confirms your care plan.',
+                    ),
+                    const SizedBox(height: 32),
                   ],
-                  _buildScheduleSection(sched),
-                  const SizedBox(height: 24),
-                  _buildAchievementsCard(streak),
-                  const SizedBox(height: 20),
-                  if (plan != null) _buildDietGuideCard(plan),
-                  const SizedBox(height: 20),
-                  if (plan != null) _buildFollowUpCard(plan),
-                  const SizedBox(height: 20),
-                  _buildReportPromptLink(),
-                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -473,8 +483,16 @@ class TodayView extends GetView<TodayController> {
   }
 
   Widget _buildAchievementsCard(int streak) {
-    final unlockedCount = streak >= 3 ? 2 : streak >= 1 ? 1 : 1;
-    final displayStreak = streak > 0 ? streak : 2;
+    final bool firstComplete = streak >= 1;
+    final bool threeDayStreak = streak >= 3;
+    final bool steadyWeek = streak >= 7;
+
+    int unlockedCount = 0;
+    if (firstComplete) unlockedCount++;
+    if (threeDayStreak) unlockedCount++;
+    if (steadyWeek) unlockedCount++;
+
+    final displayStreak = streak;
 
     return Container(
       decoration: BoxDecoration(
@@ -572,22 +590,22 @@ class TodayView extends GetView<TodayController> {
             child: Column(
               children: [
                 _buildAchievementItem(
-                  icon: LucideIcons.trophy,
-                  isUnlocked: true,
+                  icon: firstComplete ? LucideIcons.trophy : LucideIcons.lock,
+                  isUnlocked: firstComplete,
                   title: 'First complete day',
                   description: 'All schedules in a single day completed.',
                 ),
                 const SizedBox(height: 16),
                 _buildAchievementItem(
-                  icon: LucideIcons.lock,
-                  isUnlocked: false,
+                  icon: threeDayStreak ? LucideIcons.trophy : LucideIcons.lock,
+                  isUnlocked: threeDayStreak,
                   title: 'Three-day streak',
                   description: 'Three consecutive days with complete schedule.',
                 ),
                 const SizedBox(height: 16),
                 _buildAchievementItem(
-                  icon: LucideIcons.lock,
-                  isUnlocked: false,
+                  icon: steadyWeek ? LucideIcons.trophy : LucideIcons.lock,
+                  isUnlocked: steadyWeek,
                   title: 'Consistent week',
                   description: 'Over 80% of schedule marked in the last 7 days.',
                 ),

@@ -77,7 +77,7 @@ class _MascotSwayState extends State<MascotSway> with SingleTickerProviderStateM
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration)
       ..repeat(reverse: true);
-    _angleAnimation = Tween<double>(begin: -0.08, end: 0.08).animate(
+    _angleAnimation = Tween<double>(begin: -0.1047, end: 0.1047).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
     _yAnimation = Tween<double>(begin: 0, end: -2.0).animate(
@@ -99,8 +99,92 @@ class _MascotSwayState extends State<MascotSway> with SingleTickerProviderStateM
         offset: Offset(0, _yAnimation.value),
         child: Transform.rotate(
           angle: _angleAnimation.value,
+          alignment: Alignment.bottomCenter,
           child: child,
         ),
+      ),
+      child: widget.child,
+    );
+  }
+}
+
+class PeekingMascot extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+
+  const PeekingMascot({
+    super.key,
+    required this.child,
+    this.duration = const Duration(milliseconds: 7000),
+  });
+
+  @override
+  State<PeekingMascot> createState() => _PeekingMascotState();
+}
+
+class _PeekingMascotState extends State<PeekingMascot> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _peekAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration)
+      ..repeat();
+
+    _peekAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: ConstantTween<double>(1.05),
+        weight: 8,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.05, end: 0.12)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 14,
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween<double>(0.12),
+        weight: 8,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.12, end: 0.32)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 6,
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween<double>(0.32),
+        weight: 38,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.32, end: 0.40)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 6,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.40, end: 1.05)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 8,
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween<double>(1.05),
+        weight: 12,
+      ),
+    ]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _peekAnimation,
+      builder: (context, child) => FractionalTranslation(
+        translation: Offset(0, _peekAnimation.value),
+        child: child,
       ),
       child: widget.child,
     );

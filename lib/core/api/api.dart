@@ -134,7 +134,7 @@ class ApiService {
   }
 
   Future<List<CarePlan>> getPatientCarePlans() async {
-    final url = Uri.parse('$_baseUrl/patient/care-plans');
+    final url = Uri.parse('$_baseUrl/patient/care-plans/history');
     final resData = await _get(url);
     final list = resData['data'] as List<dynamic>? ?? [];
     return list.map((e) => CarePlan.fromJson(e as Map<String, dynamic>)).toList();
