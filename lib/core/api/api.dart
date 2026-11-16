@@ -175,13 +175,25 @@ class ApiService {
     return list.map((e) => Doctor.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<void> requestConsultation(String doctorId, [String? notes]) async {
+  Future<Doctor> getDoctorById(String doctorId) async {
+    final url = Uri.parse('$_baseUrl/patient/doctors/$doctorId');
+    final resData = await _get(url);
+    return Doctor.fromJson(resData['data'] as Map<String, dynamic>);
+  }
+
+  Future<Map<String, dynamic>> requestConsultation(String doctorId, [String? notes]) async {
     final url = Uri.parse('$_baseUrl/patient/consultation-requests');
     final body = jsonEncode({
       'doctorId': doctorId,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
     });
-    await _post(url, body: body);
+    final resData = await _post(url, body: body);
+    return resData['data'] as Map<String, dynamic>? ?? {};
+  }
+
+  Future<void> cancelConsultation(String requestId) async {
+    final url = Uri.parse('$_baseUrl/patient/consultation-requests/$requestId/cancel');
+    await _post(url);
   }
 
   // ==========================================
