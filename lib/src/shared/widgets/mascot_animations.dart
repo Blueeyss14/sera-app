@@ -312,18 +312,20 @@ class _InteractiveMascotState extends State<InteractiveMascot> with TickerProvid
                   color: ColorValues.primary,
                 ),
                 child: ClipOval(
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 1),
-                      child: MascotSway(
-                        child: Image.asset(
-                          ImageAssets.seraHappy,
-                          width: widget.size * 0.88,
-                          fit: BoxFit.contain,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: widget.size * 0.08,
+                        left: widget.size * 0.05,
+                        right: widget.size * 0.05,
+                        child: MascotSway(
+                          child: Image.asset(
+                            ImageAssets.seraHappy,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),

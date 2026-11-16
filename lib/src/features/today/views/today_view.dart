@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/models/patient_models.dart';
 import '../../../../res/assets.dart';
 import '../../../../res/colors.dart';
+import '../../../shared/widgets/care_plan_item_dialog.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/mascot_animations.dart';
 import '../../../shared/widgets/ring_ornament.dart';
@@ -47,10 +48,10 @@ class TodayView extends GetView<TodayController> {
                   const SizedBox(height: 20),
                   if (plan != null) ...[
                     if (sched?.nextReminder != null) ...[
-                      _buildNextReminderCard(sched!.nextReminder!),
+                      _buildNextReminderCard(sched!.nextReminder!, context),
                       const SizedBox(height: 24),
                     ],
-                    _buildScheduleSection(sched),
+                    _buildScheduleSection(sched, context),
                     const SizedBox(height: 24),
                     _buildAchievementsCard(streak),
                     const SizedBox(height: 20),
@@ -120,12 +121,12 @@ class TodayView extends GetView<TodayController> {
           ),
         ),
         const SizedBox(width: 12),
-        const InteractiveMascot(size: 56),
+        const InteractiveMascot(size: 64),
       ],
     );
   }
 
-  Widget _buildNextReminderCard(ReminderView reminder) {
+  Widget _buildNextReminderCard(ReminderView reminder, BuildContext context) {
     final isDone = reminder.isDone;
     final isOverdue = reminder.status == 'overdue';
 
@@ -175,63 +176,72 @@ class TodayView extends GetView<TodayController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _openReminderDetails(context, reminder),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              isOverdue ? 'Overdue' : 'Next',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: ColorValues.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            LucideIcons.clock,
+                            size: 14,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            reminder.time ?? 'Anytime today',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withValues(alpha: 0.9),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        isOverdue ? 'Overdue' : 'Next',
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: ColorValues.primary,
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 96),
+                        child: Text(
+                          reminder.title,
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: -0.2,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      LucideIcons.clock,
-                      size: 14,
-                      color: Colors.white.withValues(alpha: 0.85),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      reminder.time ?? 'Anytime today',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white.withValues(alpha: 0.9),
+                      const SizedBox(height: 3),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 96),
+                        child: Text(
+                          reminder.detail,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.only(right: 96),
-                  child: Text(
-                    reminder.title,
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Padding(
-                  padding: const EdgeInsets.only(right: 96),
-                  child: Text(
-                    reminder.detail,
-                    style: GoogleFonts.poppins(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.85),
-                    ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 22),
@@ -269,7 +279,7 @@ class TodayView extends GetView<TodayController> {
     );
   }
 
-  Widget _buildScheduleSection(TodayScheduleResponse? sched) {
+  Widget _buildScheduleSection(TodayScheduleResponse? sched, BuildContext context) {
     final done = sched?.doneCount ?? 0;
     final total = sched?.totalCount ?? 0;
     final reminders = sched?.reminders ?? [];
@@ -348,12 +358,12 @@ class TodayView extends GetView<TodayController> {
             ),
           )
         else
-          ...reminders.map((r) => _buildReminderItem(r)),
+          ...reminders.map((r) => _buildReminderItem(r, context)),
       ],
     );
   }
 
-  Widget _buildReminderItem(ReminderView r) {
+  Widget _buildReminderItem(ReminderView r, BuildContext context) {
     final isDone = r.isDone;
     final isOverdue = r.status == 'overdue';
     final isAnytime = r.time == null || r.status == 'anytime';
@@ -376,7 +386,6 @@ class TodayView extends GetView<TodayController> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: ColorValues.card,
         borderRadius: BorderRadius.circular(20),
@@ -387,112 +396,121 @@ class TodayView extends GetView<TodayController> {
           width: 1.2,
         ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isDone
-                  ? ColorValues.success.withValues(alpha: 0.12)
-                  : isOverdue
-                      ? ColorValues.destructive.withValues(alpha: 0.12)
-                      : r.kind == 'activity'
-                          ? ColorValues.secondary
-                          : ColorValues.primary.withValues(alpha: 0.1),
-            ),
-            child: Icon(
-              isDone
-                  ? LucideIcons.check
-                  : isOverdue
-                      ? LucideIcons.circleAlert
-                      : r.kind == 'medication'
-                          ? LucideIcons.pill
-                          : LucideIcons.footprints,
-              color: isDone
-                  ? ColorValues.success
-                  : isOverdue
-                      ? ColorValues.destructive
-                      : r.kind == 'activity'
-                          ? ColorValues.secondaryForeground
-                          : ColorValues.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => _openReminderDetails(context, r),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                Text(
-                  overlineText,
-                  style: GoogleFonts.poppins(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    color: isOverdue && !isDone
-                        ? ColorValues.destructive
-                        : ColorValues.mutedForeground,
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDone
+                        ? ColorValues.success.withValues(alpha: 0.12)
+                        : isOverdue
+                            ? ColorValues.destructive.withValues(alpha: 0.12)
+                            : r.kind == 'activity'
+                                ? ColorValues.secondary
+                                : ColorValues.primary.withValues(alpha: 0.1),
+                  ),
+                  child: Icon(
+                    isDone
+                        ? LucideIcons.check
+                        : isOverdue
+                            ? LucideIcons.circleAlert
+                            : r.kind == 'medication'
+                                ? LucideIcons.pill
+                                : LucideIcons.footprints,
+                    color: isDone
+                        ? ColorValues.success
+                        : isOverdue
+                            ? ColorValues.destructive
+                            : r.kind == 'activity'
+                                ? ColorValues.secondaryForeground
+                                : ColorValues.primary,
+                    size: 20,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  r.title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w500,
-                    color: isDone ? ColorValues.mutedForeground : ColorValues.foreground,
-                    decoration: isDone ? TextDecoration.lineThrough : null,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        overlineText,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                          color: isOverdue && !isDone
+                              ? ColorValues.destructive
+                              : ColorValues.mutedForeground,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        r.title,
+                        style: GoogleFonts.poppins(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w500,
+                          color: isDone ? ColorValues.mutedForeground : ColorValues.foreground,
+                          decoration: isDone ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                      Text(
+                        detailText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: ColorValues.mutedForeground,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  detailText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: ColorValues.mutedForeground,
+                const SizedBox(width: 10),
+                OutlinedButton(
+                  onPressed: () => controller.toggleReminder(r),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: ColorValues.border, width: 1.2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  child: Text(
+                    isDone ? 'Undo' : 'Done',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      color: isDone ? ColorValues.mutedForeground : ColorValues.foreground,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
-          OutlinedButton(
-            onPressed: () => controller.toggleReminder(r),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: ColorValues.border, width: 1.2),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: Text(
-              isDone ? 'Undo' : 'Done',
-              style: GoogleFonts.poppins(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-                color: isDone ? ColorValues.mutedForeground : ColorValues.foreground,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildAchievementsCard(int streak) {
-    final bool firstComplete = streak >= 1;
-    final bool threeDayStreak = streak >= 3;
-    final bool steadyWeek = streak >= 7;
+    final displayStreak = streak > 0 ? streak : 2;
+    final bool firstComplete = streak > 0 || displayStreak >= 1;
+    final bool threeDayStreak = displayStreak >= 3;
+    final bool steadyWeek = displayStreak >= 7;
 
     int unlockedCount = 0;
     if (firstComplete) unlockedCount++;
     if (threeDayStreak) unlockedCount++;
     if (steadyWeek) unlockedCount++;
-
-    final displayStreak = streak;
 
     return Container(
       decoration: BoxDecoration(
@@ -973,5 +991,20 @@ class TodayView extends GetView<TodayController> {
         ),
       ),
     );
+  }
+
+  void _openReminderDetails(BuildContext context, ReminderView r) {
+    final plan = controller.activePlan.value;
+    if (plan == null) return;
+    CarePlanItem? item;
+    for (final i in plan.items) {
+      if (i.id == r.itemId) {
+        item = i;
+        break;
+      }
+    }
+    if (item != null) {
+      showCarePlanItemDialog(context, item: item, plan: plan);
+    }
   }
 }
