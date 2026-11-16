@@ -39,6 +39,9 @@ dependencies:
   google_fonts: ^6.3.2
   flutter_dotenv: ^6.0.2
   http: ^1.6.0
+  intl: ^0.20.3
+  shared_preferences: ^2.5.3
+  lucide_icons_flutter: ^4.0.3
 
 dev_dependencies:
   flutter_test:

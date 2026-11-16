@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'core/services/session_service.dart';
 import 'res/colors.dart';
 import 'res/constant.dart';
 import 'src/routes/app_pages.dart';
@@ -12,6 +13,9 @@ void main() async {
   try {
     await dotenv.load(fileName: '.env');
   } catch (_) {}
+
+  await Get.putAsync(() => SessionService().init());
+
   runApp(const MyApp());
 }
 

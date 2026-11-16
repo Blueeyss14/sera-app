@@ -4,6 +4,8 @@ import '../features/auth/bindings/auth_binding.dart';
 import '../features/auth/views/auth_view.dart';
 import '../features/home/bindings/home_binding.dart';
 import '../features/home/views/home_view.dart';
+import '../features/main/bindings/main_binding.dart';
+import '../features/main/views/main_view.dart';
 import '../features/onboarding/bindings/onboarding_binding.dart';
 import '../features/onboarding/views/onboarding_view.dart';
 import '../features/splash/bindings/splash_binding.dart';
@@ -33,6 +35,12 @@ class AppPages {
       page: () => const AuthView(),
       binding: AuthBinding(),
       transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: AppRoutes.main,
+      page: () => const MainView(),
+      binding: MainBinding(),
+      transition: Transition.fadeIn,
     ),
     GetPage(
       name: AppRoutes.home,

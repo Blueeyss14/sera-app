@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/api/api.dart';
+import '../../../../core/models/patient_models.dart';
+import '../../../../core/services/session_service.dart';
 import '../../../../res/constant.dart';
 import '../../../routes/app_routes.dart';
 
@@ -96,21 +98,23 @@ class AuthController extends GetxController {
     final password = passwordController.text;
 
     try {
+      AuthResponse res;
       if (isSignUp.value) {
-        await ApiService.instance.registerPatient(
+        res = await ApiService.instance.registerPatient(
           name: nameController.text.trim(),
           email: email,
           password: password,
           hasAcceptedTerms: hasAcceptedTerms.value,
         );
       } else {
-        await ApiService.instance.loginPatient(
+        res = await ApiService.instance.loginPatient(
           email: email,
           password: password,
         );
       }
 
-      Get.offAllNamed(AppRoutes.home);
+      await SessionService.to.saveSession(res.user, res.token);
+      Get.offAllNamed(AppRoutes.main);
     } on ApiException catch (e) {
       errorMessage.value = e.message;
     } catch (e) {
@@ -120,8 +124,20 @@ class AuthController extends GetxController {
     }
   }
 
-  void socialDemo() {
-    Get.offAllNamed(AppRoutes.home);
+  Future<void> socialDemo() async {
+    isLoading.value = true;
+    try {
+      final res = await ApiService.instance.loginPatient(
+        email: 'takeshi.sato@gmail.com',
+        password: 'password123',
+      );
+      await SessionService.to.saveSession(res.user, res.token);
+      Get.offAllNamed(AppRoutes.main);
+    } catch (_) {
+      Get.offAllNamed(AppRoutes.main);
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   @override
