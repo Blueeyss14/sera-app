@@ -124,21 +124,7 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<void> socialDemo() async {
-    isLoading.value = true;
-    try {
-      final res = await ApiService.instance.loginPatient(
-        email: 'takeshi.sato@gmail.com',
-        password: 'password123',
-      );
-      await SessionService.to.saveSession(res.user, res.token);
-      Get.offAllNamed(AppRoutes.main);
-    } catch (_) {
-      Get.offAllNamed(AppRoutes.main);
-    } finally {
-      isLoading.value = false;
-    }
-  }
+  void socialDemo() {}
 
   @override
   void onClose() {

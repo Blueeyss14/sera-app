@@ -45,6 +45,11 @@ class ProfileController extends GetxController {
       ]);
 
       final p = results[0] as Patient?;
+      if (p == null) {
+        await signOut();
+        return;
+      }
+
       patient.value = p;
       adherence.value = results[1] as AdherenceMetricsResponse?;
       wearable.value = results[2] as WearableStatus?;
@@ -53,13 +58,14 @@ class ProfileController extends GetxController {
       plans.value = results[5] as List<CarePlan>? ?? [];
       wearableTrends.value = results[6] as WearableDayTrends?;
 
-      if (p?.assignedDoctorId != null && p!.assignedDoctorId!.isNotEmpty) {
+      if (p.assignedDoctorId != null && p.assignedDoctorId!.isNotEmpty) {
         try {
           final doc = await ApiService.instance.getDoctorById(p.assignedDoctorId!);
           assignedDoctor.value = doc;
         } catch (_) {}
       }
     } catch (_) {
+      await signOut();
     } finally {
       isLoading.value = false;
     }

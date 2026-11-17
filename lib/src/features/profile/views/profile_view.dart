@@ -129,7 +129,7 @@ class _ProfileViewState extends State<ProfileView> {
           child: _selectedMetric != null
               ? ActivityMetricView(
                   metric: _selectedMetric!,
-                  deviceName: controller.wearable.value?.deviceName ?? 'HUAWEI Band 9 (sera-19)',
+                  deviceName: controller.wearable.value?.deviceName ?? 'HUAWEI Band 9',
                   initialTrend: _getInitialTrendForMetric(_selectedMetric!),
                   onBack: () => setState(() => _selectedMetric = null),
                 )
@@ -170,7 +170,7 @@ class _ProfileViewState extends State<ProfileView> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          if (patient != null) _buildSidebarCard(patient),
+                          _buildSidebarCard(patient),
                           const SizedBox(height: 16),
                           _buildContentCard(patient, doctor, wearable, daily, trends, adherence, feedbacks, plans),
                         ],
@@ -183,8 +183,10 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildSidebarCard(Patient patient) {
-    final isUnlinked = patient.mrn == 'UNLINKED' || patient.mrn.isEmpty || patient.mrn == '-';
+  Widget _buildSidebarCard(Patient? patient) {
+    final name = patient?.name ?? controller.user?.name ?? 'User';
+    final mrn = patient?.mrn ?? '-';
+    final isUnlinked = mrn == 'UNLINKED' || mrn.isEmpty || mrn == '-';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -213,7 +215,7 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  _getInitials(patient.name),
+                  _getInitials(name),
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -227,7 +229,7 @@ class _ProfileViewState extends State<ProfileView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      patient.name,
+                      name,
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -237,7 +239,7 @@ class _ProfileViewState extends State<ProfileView> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isUnlinked ? 'Unlinked' : patient.mrn,
+                      isUnlinked ? 'Unlinked' : mrn,
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
@@ -378,7 +380,7 @@ class _ProfileViewState extends State<ProfileView> {
           const SizedBox(height: 16),
           const Divider(height: 1, color: ColorValues.border),
           const SizedBox(height: 20),
-          if (_selectedTabIndex == 0 && patient != null)
+          if (_selectedTabIndex == 0)
             _buildAccountPanel(patient, doctor)
           else if (_selectedTabIndex == 1)
             _buildActivitySection(patient, wearable, daily, trends, adherence, feedbacks)
@@ -389,9 +391,11 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildAccountPanel(Patient patient, Doctor? doctor) {
-    final isUnlinked = patient.mrn == 'UNLINKED' || patient.mrn.isEmpty || patient.mrn == '-';
-    final ageStr = _calculateAge(patient.birthDate);
+  Widget _buildAccountPanel(Patient? patient, Doctor? doctor) {
+    final isUnlinked = patient == null || patient.mrn == 'UNLINKED' || patient.mrn.isEmpty || patient.mrn == '-';
+    final ageStr = _calculateAge(patient?.birthDate);
+    final fullName = patient?.name ?? controller.user?.name ?? '-';
+    final phone = patient?.phone.isNotEmpty == true ? patient!.phone : '-';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,21 +403,21 @@ class _ProfileViewState extends State<ProfileView> {
         _buildFieldGroup(
           title: 'Identity',
           fields: [
-            _buildReadOnlyField(label: 'Full Name', value: patient.name),
+            _buildReadOnlyField(label: 'Full Name', value: fullName),
             _buildReadOnlyField(
               label: 'Medical Record Number (MRN)',
               value: isUnlinked ? 'Unlinked' : patient.mrn,
             ),
             _buildReadOnlyField(label: 'Age', value: ageStr),
-            _buildReadOnlyField(label: 'Phone Number', value: patient.phone.isNotEmpty ? patient.phone : '-'),
+            _buildReadOnlyField(label: 'Phone Number', value: phone),
           ],
         ),
         const SizedBox(height: 24),
         _buildFieldGroup(
           title: 'Guardian',
           fields: [
-            _buildReadOnlyField(label: 'Guardian Name', value: patient.guardianName?.isNotEmpty == true ? patient.guardianName! : '-'),
-            _buildReadOnlyField(label: 'Guardian Phone', value: patient.guardianPhone?.isNotEmpty == true ? patient.guardianPhone! : '-'),
+            _buildReadOnlyField(label: 'Guardian Name', value: patient?.guardianName?.isNotEmpty == true ? patient!.guardianName! : '-'),
+            _buildReadOnlyField(label: 'Guardian Phone', value: patient?.guardianPhone?.isNotEmpty == true ? patient!.guardianPhone! : '-'),
           ],
         ),
         const SizedBox(height: 24),
@@ -426,7 +430,7 @@ class _ProfileViewState extends State<ProfileView> {
             ),
             _buildReadOnlyField(
               label: 'Conditions',
-              value: patient.conditions.isNotEmpty ? patient.conditions.join(', ') : '-',
+              value: isUnlinked ? '-' : patient.conditions.isNotEmpty ? patient.conditions.join(', ') : '-',
             ),
           ],
         ),
@@ -897,7 +901,7 @@ class _ProfileViewState extends State<ProfileView> {
                           children: [
                             Expanded(
                               child: Text(
-                                wearable.deviceName ?? 'HUAWEI Band 9 (sera-1)',
+                                wearable.deviceName ?? 'HUAWEI Band 9',
                                 style: GoogleFonts.poppins(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w600,
@@ -1276,104 +1280,458 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   void _showConnectDialog() {
-    final nameCtrl = TextEditingController(text: 'HUAWEI Band 9 (sera-1)');
+    final nameCtrl = TextEditingController();
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            'Connect Smartwatch',
-            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Enter smartwatch ID to connect device.',
-                style: GoogleFonts.poppins(fontSize: 12, color: ColorValues.mutedForeground),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: nameCtrl,
-                style: GoogleFonts.poppins(fontSize: 13.5),
-                decoration: InputDecoration(
-                  labelText: 'Smartwatch ID',
-                  labelStyle: GoogleFonts.poppins(fontSize: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Connect Smartwatch',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: ColorValues.foreground,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Enter smartwatch code to connect device.',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                              color: ColorValues.mutedForeground,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.of(ctx).pop(),
+                      borderRadius: BorderRadius.circular(16),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(
+                          LucideIcons.x,
+                          size: 18,
+                          color: ColorValues.mutedForeground,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Smartwatch Code',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: ColorValues.foreground,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: nameCtrl,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: ColorValues.foreground,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Enter Code',
+                    hintStyle: GoogleFonts.poppins(
+                      fontSize: 13.5,
+                      color: ColorValues.mutedForeground.withValues(alpha: 0.6),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: ColorValues.primary, width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                Obx(() {
+                  final isConnecting = controller.isConnectingWearable.value;
+                  return SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton(
+                      onPressed: isConnecting
+                          ? null
+                          : () async {
+                              final text = nameCtrl.text.trim();
+                              if (text.isEmpty) return;
+                              final success = await controller.connectWearable(text);
+                              if (ctx.mounted && success) {
+                                Navigator.of(ctx).pop();
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ColorValues.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: isConnecting
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Connecting...',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              'Connect',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: TextButton.styleFrom(
+                      foregroundColor: ColorValues.foreground,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: ColorValues.foreground,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(
-                'Cancel',
-                style: GoogleFonts.poppins(fontSize: 13, color: ColorValues.mutedForeground),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(ctx).pop();
-                await controller.connectWearable(nameCtrl.text.trim());
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ColorValues.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: Text(
-                'Connect',
-                style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
         );
       },
     );
   }
 
   void _showDisconnectDialog() {
+    final wearable = controller.wearable.value;
+    final deviceName = wearable?.deviceName ?? 'HUAWEI Band 9';
+    final connectedDateStr = _formatDateTime(wearable?.connectedAt ?? '2026-09-15T08:30:00');
+    final syncDateStr = _formatDateTime(wearable?.lastSyncAt ?? '2026-11-18T03:55:00');
+
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            'Disconnect Smartwatch?',
-            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          content: Text(
-            'Are you sure you want to disconnect this smartwatch?',
-            style: GoogleFonts.poppins(fontSize: 13, color: ColorValues.mutedForeground, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(
-                'Cancel',
-                style: GoogleFonts.poppins(fontSize: 13, color: ColorValues.mutedForeground),
-              ),
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(ctx).pop();
-                await controller.disconnectWearable();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ColorValues.destructive,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: Text(
-                'Disconnect',
-                style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Disconnect Smartwatch?',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: ColorValues.foreground,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Are you sure you want to disconnect this smartwatch?',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                              color: ColorValues.mutedForeground,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.of(ctx).pop(),
+                      borderRadius: BorderRadius.circular(16),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(
+                          LucideIcons.x,
+                          size: 18,
+                          color: ColorValues.mutedForeground,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            LucideIcons.watch,
+                            size: 16,
+                            color: ColorValues.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              deviceName,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: ColorValues.foreground,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '● Connected',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF059669),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Container(
+                          height: 1,
+                          color: const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Connected Since',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w400,
+                                    color: ColorValues.mutedForeground,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  connectedDateStr,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: ColorValues.foreground,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Last Sync',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w400,
+                                    color: ColorValues.mutedForeground,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  syncDateStr,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: ColorValues.foreground,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Obx(() {
+                  final isDisconnecting = controller.isDisconnecting.value;
+                  return SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton(
+                      onPressed: isDisconnecting
+                          ? null
+                          : () async {
+                              await controller.disconnectWearable();
+                              if (ctx.mounted) {
+                                Navigator.of(ctx).pop();
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFEE2E2),
+                        foregroundColor: const Color(0xFFDC2626),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: isDisconnecting
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFFDC2626),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Disconnecting...',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFFDC2626),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              'Disconnect',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFDC2626),
+                              ),
+                            ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: ColorValues.foreground,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );

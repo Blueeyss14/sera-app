@@ -14,6 +14,8 @@ class SplashController extends GetxController {
     Timer(const Duration(milliseconds: 2600), () {
       if (SessionService.to.isLoggedIn) {
         Get.offNamed(AppRoutes.main);
+      } else if (SessionService.to.isOnboardingDone.value) {
+        Get.offNamed(AppRoutes.auth);
       } else {
         Get.offNamed(AppRoutes.onboarding);
       }

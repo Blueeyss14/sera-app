@@ -9,16 +9,23 @@ class SessionService extends GetxService {
 
   final RxnString token = RxnString();
   final Rxn<AuthUser> user = Rxn<AuthUser>();
+  final RxBool isOnboardingDone = false.obs;
 
   bool get isLoggedIn => token.value != null && token.value!.isNotEmpty;
 
   static const String _keyToken = 'sera_auth_token';
   static const String _keyUser = 'sera_auth_user';
+  static const String _keyOnboardingDone = 'sera_onboarding_done';
 
   Future<SessionService> init() async {
     final prefs = await SharedPreferences.getInstance();
     final savedToken = prefs.getString(_keyToken);
     final savedUserJson = prefs.getString(_keyUser);
+    final savedOnboarding = prefs.getBool(_keyOnboardingDone);
+
+    if (savedOnboarding == true) {
+      isOnboardingDone.value = true;
+    }
 
     if (savedToken != null && savedToken.isNotEmpty) {
       token.value = savedToken;
@@ -31,6 +38,12 @@ class SessionService extends GetxService {
     }
 
     return this;
+  }
+
+  Future<void> completeOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    isOnboardingDone.value = true;
+    await prefs.setBool(_keyOnboardingDone, true);
   }
 
   Future<void> saveSession(AuthUser authUser, String authToken) async {

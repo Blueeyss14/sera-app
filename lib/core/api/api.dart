@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
 import '../../res/constant.dart';
+import '../../src/routes/app_routes.dart';
 import '../config/config.dart';
 import '../models/patient_models.dart';
 import '../services/session_service.dart';
@@ -350,6 +352,12 @@ class ApiService {
       if (json['success'] == true) {
         return json;
       }
+    }
+
+    if (response.statusCode == 401) {
+      SessionService.to.clearSession();
+      Get.offAllNamed(AppRoutes.auth);
+      throw ApiException('Session expired. Please log in again.', 401);
     }
 
     final message = json['message']?.toString() ??

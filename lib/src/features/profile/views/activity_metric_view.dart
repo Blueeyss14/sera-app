@@ -36,28 +36,28 @@ class _ActivityMetricViewState extends State<ActivityMetricView> {
     'Feb',
     'Mar',
     'Apr',
-    'Mei',
+    'May',
     'Jun',
     'Jul',
-    'Agu',
+    'Aug',
     'Sep',
-    'Okt',
+    'Oct',
     'Nov',
-    'Des',
+    'Dec',
   ];
 
   final Map<String, String> _metricTitles = {
     'spo2': 'SpO₂',
-    'steps': 'Langkah',
-    'heart-rate': 'Detak jantung',
-    'sleep': 'Tidur',
+    'steps': 'Steps',
+    'heart-rate': 'Heart Rate',
+    'sleep': 'Sleep',
   };
 
   final List<Map<String, String>> _periods = [
-    {'id': 'day', 'label': 'Hari'},
-    {'id': 'week', 'label': 'Minggu'},
-    {'id': 'month', 'label': 'Bulan'},
-    {'id': 'year', 'label': 'Tahun'},
+    {'id': 'day', 'label': 'Day'},
+    {'id': 'week', 'label': 'Week'},
+    {'id': 'month', 'label': 'Month'},
+    {'id': 'year', 'label': 'Year'},
   ];
 
   @override
@@ -183,7 +183,7 @@ class _ActivityMetricViewState extends State<ActivityMetricView> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Kembali ke aktivitas',
+                    'Back to activities',
                     style: GoogleFonts.poppins(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w500,
@@ -381,7 +381,40 @@ class _ActivityMetricViewState extends State<ActivityMetricView> {
     );
   }
 
+  String _translateStatLabel(String label) {
+    final lower = label.toLowerCase();
+    if (lower.contains('rata-rata spo') || lower.contains('average spo')) return 'Average SpO₂';
+    if (lower.contains('rentang spo') || lower.contains('range spo')) return 'SpO₂ Range';
+    if (lower.contains('rata-rata harian') || lower.contains('daily average')) return 'Daily Average';
+    if (lower.contains('total langkah') || lower.contains('total steps')) return 'Total Steps';
+    if (lower.contains('rentang denyut') || lower.contains('heart rate range')) return 'Heart Rate Range';
+    if (lower.contains('istirahat') || lower.contains('resting')) return 'Resting Heart Rate';
+    if (lower.contains('tidur malam') || lower.contains('night sleep')) return 'Average Night Sleep';
+    if (lower.contains('tidur siang') || lower.contains('nap')) return 'Average Nap Sleep';
+    return label;
+  }
+
+  String _translateUnit(String unit) {
+    final lower = unit.toLowerCase();
+    if (lower == 'langkah') return 'steps';
+    if (lower == 'mnt') return 'min';
+    if (lower == 'j') return 'h';
+    return unit;
+  }
+
+  String _translateValue(String value) {
+    return value
+        .replaceAll(' mnt', ' min')
+        .replaceAll('mnt', 'm')
+        .replaceAll(' j ', 'h ')
+        .replaceAll(' j', 'h');
+  }
+
   Widget _buildStatItem(String value, String unit, String label) {
+    final displayVal = _translateValue(value);
+    final displayUnit = _translateUnit(unit);
+    final displayLabel = _translateStatLabel(label);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -391,7 +424,7 @@ class _ActivityMetricViewState extends State<ActivityMetricView> {
           textBaseline: TextBaseline.alphabetic,
           children: [
             Text(
-              value,
+              displayVal,
               style: GoogleFonts.poppins(
                 fontSize: 28,
                 fontWeight: FontWeight.w600,
@@ -399,10 +432,10 @@ class _ActivityMetricViewState extends State<ActivityMetricView> {
                 letterSpacing: -0.5,
               ),
             ),
-            if (unit.isNotEmpty) ...[
+            if (displayUnit.isNotEmpty) ...[
               const SizedBox(width: 4),
               Text(
-                unit,
+                displayUnit,
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
@@ -414,7 +447,7 @@ class _ActivityMetricViewState extends State<ActivityMetricView> {
         ),
         const SizedBox(height: 2),
         Text(
-          label,
+          displayLabel,
           style: GoogleFonts.poppins(
             fontSize: 12.5,
             fontWeight: FontWeight.w400,
@@ -466,13 +499,13 @@ class _ActivityMetricViewState extends State<ActivityMetricView> {
     if (widget.metric == 'sleep' && _selectedPeriod == 'day') {
       return Row(
         children: [
-          _buildLegendItem(const Color(0xFF0284C7), 'Nyenyak'),
+          _buildLegendItem(const Color(0xFF0284C7), 'Deep'),
           const SizedBox(width: 14),
-          _buildLegendItem(const Color(0xFF06B6D4), 'Ringan'),
+          _buildLegendItem(const Color(0xFF06B6D4), 'Light'),
           const SizedBox(width: 14),
           _buildLegendItem(const Color(0xFF818CF8), 'REM'),
           const SizedBox(width: 14),
-          _buildLegendItem(const Color(0xFFF59E0B), 'Terjaga'),
+          _buildLegendItem(const Color(0xFFF59E0B), 'Awake'),
         ],
       );
     }
@@ -668,7 +701,7 @@ class _DetailedWearableChartPainter extends CustomPainter {
 
       String tickText = '${tick.toInt()}';
       if (metric == 'sleep') {
-        tickText = '${(tick / 60).round()} j';
+        tickText = '${(tick / 60).round()} h';
       }
 
       final span = TextSpan(text: tickText, style: textStyle);

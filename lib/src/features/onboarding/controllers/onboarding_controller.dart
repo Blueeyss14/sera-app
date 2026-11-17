@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../core/services/session_service.dart';
 import '../../../../res/assets.dart';
 import '../../../../res/constant.dart';
 import '../../../routes/app_routes.dart';
@@ -38,14 +39,15 @@ class OnboardingController extends GetxController {
     currentIndex.value = index;
   }
 
-  void nextPage() {
+  Future<void> nextPage() async {
     if (currentIndex.value < items.length - 1) {
       pageController.nextPage(
         duration: const Duration(milliseconds: 360),
         curve: Curves.easeInOutCubic,
       );
     } else {
-      Get.toNamed(AppRoutes.auth);
+      await SessionService.to.completeOnboarding();
+      Get.offAllNamed(AppRoutes.auth);
     }
   }
 
