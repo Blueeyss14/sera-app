@@ -8,6 +8,7 @@ import '../../../../core/models/patient_models.dart';
 import '../../../../res/colors.dart';
 import '../../../shared/widgets/plan_history_dialog.dart';
 import '../controllers/profile_controller.dart';
+import 'activity_metric_view.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -19,6 +20,7 @@ class ProfileView extends StatefulWidget {
 class _ProfileViewState extends State<ProfileView> {
   final ProfileController controller = Get.find<ProfileController>();
   int _selectedTabIndex = 0;
+  String? _selectedMetric;
 
   String? _selectedFeedbackCategory;
   final TextEditingController _feedbackMessageController = TextEditingController();
@@ -95,56 +97,88 @@ class _ProfileViewState extends State<ProfileView> {
     return '$dayName, ${dt.day} ${_monthNames[dt.month - 1]}';
   }
 
+  MetricTrend? _getInitialTrendForMetric(String metric) {
+    final trends = controller.wearableTrends.value;
+    if (trends == null) return null;
+    switch (metric) {
+      case 'steps':
+        return trends.steps;
+      case 'heart-rate':
+        return trends.heartRate;
+      case 'sleep':
+        return trends.sleep;
+      case 'spo2':
+        return trends.spo2;
+      default:
+        return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Obx(() {
-          if (controller.isLoading.value) {
-            return const Center(
-              child: CircularProgressIndicator(color: ColorValues.primary),
-            );
-          }
+    return PopScope(
+      canPop: _selectedMetric == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _selectedMetric != null) {
+          setState(() => _selectedMetric = null);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: _selectedMetric != null
+              ? ActivityMetricView(
+                  metric: _selectedMetric!,
+                  deviceName: controller.wearable.value?.deviceName ?? 'HUAWEI Band 9 (sera-19)',
+                  initialTrend: _getInitialTrendForMetric(_selectedMetric!),
+                  onBack: () => setState(() => _selectedMetric = null),
+                )
+              : Obx(() {
+                  if (controller.isLoading.value) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: ColorValues.primary),
+                    );
+                  }
 
-          final patient = controller.patient.value;
-          final doctor = controller.assignedDoctor.value;
-          final wearable = controller.wearable.value;
-          final daily = controller.dailyWearable.value;
-          final trends = controller.wearableTrends.value;
-          final adherence = controller.adherence.value;
-          final feedbacks = controller.feedbacks;
-          final plans = controller.plans;
+                  final patient = controller.patient.value;
+                  final doctor = controller.assignedDoctor.value;
+                  final wearable = controller.wearable.value;
+                  final daily = controller.dailyWearable.value;
+                  final trends = controller.wearableTrends.value;
+                  final adherence = controller.adherence.value;
+                  final feedbacks = controller.feedbacks;
+                  final plans = controller.plans;
 
-          return RefreshIndicator(
-            onRefresh: controller.fetchProfile,
-            color: ColorValues.primary,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
-              ),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Profile',
-                    style: GoogleFonts.poppins(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      color: ColorValues.foreground,
-                      letterSpacing: -0.3,
+                  return RefreshIndicator(
+                    onRefresh: controller.fetchProfile,
+                    color: ColorValues.primary,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Profile',
+                            style: GoogleFonts.poppins(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: ColorValues.foreground,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (patient != null) _buildSidebarCard(patient),
+                          const SizedBox(height: 16),
+                          _buildContentCard(patient, doctor, wearable, daily, trends, adherence, feedbacks, plans),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (patient != null) _buildSidebarCard(patient),
-                  const SizedBox(height: 16),
-                  _buildContentCard(patient, doctor, wearable, daily, trends, adherence, feedbacks, plans),
-                ],
-              ),
-            ),
-          );
-        }),
+                  );
+                }),
+        ),
       ),
     );
   }
@@ -787,6 +821,7 @@ class _ProfileViewState extends State<ProfileView> {
               unit: stepsUnit,
               chartWidget: _buildStepsMiniChart(trends?.steps?.points),
               bottomLabel: 'Steps',
+              onTap: () => setState(() => _selectedMetric = 'steps'),
             ),
             _buildWebMetricCard(
               icon: LucideIcons.heartPulse,
@@ -803,6 +838,7 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
               ),
               bottomLabel: 'Last updated',
+              onTap: () => setState(() => _selectedMetric = 'heart-rate'),
             ),
             _buildWebMetricCard(
               icon: LucideIcons.moon,
@@ -813,6 +849,7 @@ class _ProfileViewState extends State<ProfileView> {
               unit: '',
               chartWidget: _buildSleepMiniChart(trends?.sleep?.points),
               bottomLabel: 'Night sleep',
+              onTap: () => setState(() => _selectedMetric = 'sleep'),
             ),
             _buildWebMetricCard(
               icon: LucideIcons.droplets,
@@ -823,6 +860,7 @@ class _ProfileViewState extends State<ProfileView> {
               unit: spo2Unit,
               chartWidget: _buildSpo2MiniChart(trends?.spo2?.points),
               bottomLabel: 'Average SpO₂',
+              onTap: () => setState(() => _selectedMetric = 'spo2'),
             ),
           ],
         ),
@@ -978,87 +1016,92 @@ class _ProfileViewState extends State<ProfileView> {
     required String unit,
     required Widget chartWidget,
     required String bottomLabel,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: ColorValues.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: iconBgColor,
-                  borderRadius: BorderRadius.circular(10),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: ColorValues.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: iconBgColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, color: iconColor, size: 16),
                 ),
-                alignment: Alignment.center,
-                child: Icon(icon, color: iconColor, size: 16),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      color: ColorValues.foreground,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const Icon(LucideIcons.chevronRight, size: 14, color: ColorValues.mutedForeground),
+              ],
+            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  value,
                   style: GoogleFonts.poppins(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
                     color: ColorValues.foreground,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const Icon(LucideIcons.chevronRight, size: 14, color: ColorValues.mutedForeground),
-            ],
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: ColorValues.foreground,
-                ),
-              ),
-              if (unit.isNotEmpty) ...[
-                const SizedBox(width: 4),
-                Text(
-                  unit,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: ColorValues.mutedForeground,
+                if (unit.isNotEmpty) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    unit,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: ColorValues.mutedForeground,
+                    ),
                   ),
-                ),
+                ],
               ],
-            ],
-          ),
-          SizedBox(
-            height: 36,
-            width: double.infinity,
-            child: chartWidget,
-          ),
-          Text(
-            bottomLabel,
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              fontWeight: FontWeight.w400,
-              color: ColorValues.mutedForeground,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            SizedBox(
+              height: 36,
+              width: double.infinity,
+              child: chartWidget,
+            ),
+            Text(
+              bottomLabel,
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                fontWeight: FontWeight.w400,
+                color: ColorValues.mutedForeground,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }

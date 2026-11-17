@@ -252,6 +252,23 @@ class ApiService {
     }
   }
 
+  Future<MetricTrend?> getWearableMetricTrend({
+    required String metric,
+    String period = 'day',
+    String? anchorDate,
+  }) async {
+    final anchorParam = anchorDate != null && anchorDate.isNotEmpty ? '&anchor=$anchorDate' : '';
+    final url = Uri.parse('$_baseUrl/patient/wearable/trends?period=$period&metric=$metric$anchorParam');
+    try {
+      final resData = await _get(url);
+      final data = resData['data'];
+      if (data == null) return null;
+      return MetricTrend.fromJson(data as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<FeedbackEntry>> getFeedbacks() async {
     final url = Uri.parse('$_baseUrl/patient/feedback');
     try {
