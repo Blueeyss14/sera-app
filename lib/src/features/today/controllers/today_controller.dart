@@ -8,7 +8,8 @@ import '../../../../core/services/session_service.dart';
 class TodayController extends GetxController {
   final RxBool isLoading = true.obs;
   final Rxn<TodayScheduleResponse> schedule = Rxn<TodayScheduleResponse>();
-  final Rxn<AdherenceMetricsResponse> adherence = Rxn<AdherenceMetricsResponse>();
+  final Rxn<AdherenceMetricsResponse> adherence =
+      Rxn<AdherenceMetricsResponse>();
   final Rxn<CarePlan> activePlan = Rxn<CarePlan>();
   final Rxn<WearableStatus> wearable = Rxn<WearableStatus>();
   final Rxn<Patient> patient = Rxn<Patient>();
@@ -26,13 +27,13 @@ class TodayController extends GetxController {
     if (user != null && user.name.isNotEmpty) {
       return user.name.split(' ').first;
     }
-    return 'Takeshi';
+    return 'User';
   }
 
   String get honorific {
     final gender = patient.value?.gender;
-    if (gender == 'female') return 'Ms.';
-    return 'Mr.';
+    if (gender == '') return '';
+    return '';
   }
 
   String get currentDateFormatted {
