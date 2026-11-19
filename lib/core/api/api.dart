@@ -46,10 +46,6 @@ class ApiService {
     return headers;
   }
 
-  // ==========================================
-  // Auth
-  // ==========================================
-
   Future<AuthResponse> loginPatient({
     required String email,
     required String password,
@@ -63,6 +59,19 @@ class ApiService {
     final resData = await _post(url, body: body);
     final data = resData['data'] as Map<String, dynamic>;
     return AuthResponse.fromJson(data);
+  }
+
+  Future<AuthUser?> getMe() async {
+    try {
+      final url = Uri.parse('$_baseUrl/auth/me');
+      final resData = await _get(url);
+      final data = resData['data'] as Map<String, dynamic>;
+      final updatedUser = AuthUser.fromJson(data);
+      await SessionService.to.saveUser(updatedUser);
+      return updatedUser;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<AuthResponse> registerPatient({
@@ -85,10 +94,6 @@ class ApiService {
     final data = resData['data'] as Map<String, dynamic>;
     return AuthResponse.fromJson(data);
   }
-
-  // ==========================================
-  // Reminders & Today Schedule
-  // ==========================================
 
   Future<TodayScheduleResponse> getTodaySchedule([String? date]) async {
     final query = date != null ? '?date=$date' : '';
@@ -123,10 +128,6 @@ class ApiService {
     return AdherenceMetricsResponse.fromJson(resData['data'] as Map<String, dynamic>);
   }
 
-  // ==========================================
-  // Care Plan
-  // ==========================================
-
   Future<CarePlan?> getPatientActivePlan() async {
     final url = Uri.parse('$_baseUrl/patient/care-plan/active');
     final resData = await _get(url);
@@ -141,10 +142,6 @@ class ApiService {
     final list = resData['data'] as List<dynamic>? ?? [];
     return list.map((e) => CarePlan.fromJson(e as Map<String, dynamic>)).toList();
   }
-
-  // ==========================================
-  // Companion AI
-  // ==========================================
 
   Future<List<ChatMessage>> getCompanionHistory() async {
     final url = Uri.parse('$_baseUrl/companion/history');
@@ -164,10 +161,6 @@ class ApiService {
     final url = Uri.parse('$_baseUrl/companion/messages/$messageId/report');
     await _post(url);
   }
-
-  // ==========================================
-  // Doctors & Consultations
-  // ==========================================
 
   Future<List<Doctor>> getDoctors([String? query]) async {
     final q = query != null && query.isNotEmpty ? '?q=${Uri.encodeComponent(query)}' : '';
@@ -198,14 +191,10 @@ class ApiService {
     await _post(url);
   }
 
-  // ==========================================
-  // Wearable (Smartwatch)
-  // ==========================================
-
   Future<void> connectWearable([String? deviceName]) async {
     final url = Uri.parse('$_baseUrl/patient/wearable/connect');
     final body = jsonEncode({
-      'deviceName': deviceName ?? 'HUAWEI Band 9',
+      if (deviceName != null && deviceName.isNotEmpty) 'deviceName': deviceName,
       'deviceModel': 'KIM-B19',
     });
     await _post(url, body: body);
@@ -288,10 +277,6 @@ class ApiService {
     await _post(url, body: body);
   }
 
-  // ==========================================
-  // Patient Records & History
-  // ==========================================
-
   Future<List<HealthHistoryEntry>> getPatientHistory(String patientId) async {
     final url = Uri.parse('$_baseUrl/hospital/patients/$patientId/history');
     final resData = await _get(url);
@@ -299,15 +284,15 @@ class ApiService {
     return list.map((e) => HealthHistoryEntry.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<Patient> getPatientDetail(String patientId) async {
-    final url = Uri.parse('$_baseUrl/hospital/patients/$patientId');
-    final resData = await _get(url);
-    return Patient.fromJson(resData['data'] as Map<String, dynamic>);
+  Future<Patient?> getPatientDetail(String patientId) async {
+    try {
+      final url = Uri.parse('$_baseUrl/hospital/patients/$patientId');
+      final resData = await _get(url);
+      return Patient.fromJson(resData['data'] as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
   }
-
-  // ==========================================
-  // HTTP Helpers
-  // ==========================================
 
   Future<Map<String, dynamic>> _get(Uri url) async {
     try {

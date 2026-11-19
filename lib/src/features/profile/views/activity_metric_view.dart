@@ -204,15 +204,17 @@ class _ActivityMetricViewState extends State<ActivityMetricView> {
               letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            widget.deviceName,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-              color: ColorValues.mutedForeground,
+          if (widget.deviceName.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              widget.deviceName,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                color: ColorValues.mutedForeground,
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 16),
           Container(
             width: double.infinity,

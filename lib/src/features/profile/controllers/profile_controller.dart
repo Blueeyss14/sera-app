@@ -33,24 +33,40 @@ class ProfileController extends GetxController {
   Future<void> fetchProfile() async {
     isLoading.value = true;
     try {
-      final patientId = user?.patientId ?? 'p-001';
-      final results = await Future.wait([
-        ApiService.instance.getPatientDetail(patientId),
+      final me = await ApiService.instance.getMe();
+      final currentUser = me ?? user;
+      final patientId = currentUser?.patientId;
+
+      final futures = <Future<dynamic>>[
+        patientId != null && patientId.isNotEmpty
+            ? ApiService.instance.getPatientDetail(patientId)
+            : Future.value(null),
         ApiService.instance.getPatientAdherence(),
         ApiService.instance.getWearableStatus(),
         ApiService.instance.getDailyWearable(),
         ApiService.instance.getFeedbacks(),
         ApiService.instance.getPatientCarePlans(),
         ApiService.instance.getWearableDayTrends(),
-      ]);
+      ];
+
+      final results = await Future.wait(futures);
 
       final p = results[0] as Patient?;
-      if (p == null) {
-        await signOut();
-        return;
+      if (p != null) {
+        patient.value = p;
+      } else {
+        patient.value = Patient(
+          id: currentUser?.id ?? '',
+          mrn: 'UNLINKED',
+          name: currentUser?.name ?? 'User',
+          gender: 'male',
+          birthDate: '',
+          phone: currentUser?.phone ?? '',
+          conditions: const [],
+          allergies: const [],
+        );
       }
 
-      patient.value = p;
       adherence.value = results[1] as AdherenceMetricsResponse?;
       wearable.value = results[2] as WearableStatus?;
       dailyWearable.value = results[3] as DailyWearableData?;
@@ -58,14 +74,14 @@ class ProfileController extends GetxController {
       plans.value = results[5] as List<CarePlan>? ?? [];
       wearableTrends.value = results[6] as WearableDayTrends?;
 
-      if (p.assignedDoctorId != null && p.assignedDoctorId!.isNotEmpty) {
+      final docId = patient.value?.assignedDoctorId;
+      if (docId != null && docId.isNotEmpty) {
         try {
-          final doc = await ApiService.instance.getDoctorById(p.assignedDoctorId!);
+          final doc = await ApiService.instance.getDoctorById(docId);
           assignedDoctor.value = doc;
         } catch (_) {}
       }
     } catch (_) {
-      await signOut();
     } finally {
       isLoading.value = false;
     }
@@ -183,6 +199,35 @@ class ProfileController extends GetxController {
       return false;
     } finally {
       isSendingFeedback.value = false;
+    }
+  }
+
+  Future<void> updatePersonalInfo({
+    required String name,
+    required String? birthDate,
+    required String phone,
+    required String guardianName,
+    required String guardianPhone,
+  }) async {
+    final curPatient = patient.value;
+    if (curPatient != null) {
+      final updatedPatient = curPatient.copyWith(
+        name: name,
+        birthDate: birthDate,
+        phone: phone,
+        guardianName: guardianName,
+        guardianPhone: guardianPhone,
+      );
+      patient.value = updatedPatient;
+    }
+
+    final curUser = SessionService.to.user.value;
+    if (curUser != null) {
+      final updatedUser = curUser.copyWith(
+        name: name,
+        phone: phone,
+      );
+      await SessionService.to.saveUser(updatedUser);
     }
   }
 

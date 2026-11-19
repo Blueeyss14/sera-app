@@ -25,6 +25,15 @@ class _ProfileViewState extends State<ProfileView> {
   String? _selectedFeedbackCategory;
   final TextEditingController _feedbackMessageController = TextEditingController();
 
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _guardianNameController = TextEditingController();
+  final TextEditingController _guardianPhoneController = TextEditingController();
+  bool _hasProfileChanges = false;
+  bool _isSavingProfile = false;
+  String? _lastSyncedPatientKey;
+
   final List<String> _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   final List<String> _monthNames = [
     'Jan',
@@ -44,7 +53,91 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   void dispose() {
     _feedbackMessageController.dispose();
+    _fullNameController.dispose();
+    _ageController.dispose();
+    _phoneController.dispose();
+    _guardianNameController.dispose();
+    _guardianPhoneController.dispose();
     super.dispose();
+  }
+
+  void _syncControllersWithPatient(Patient? patient) {
+    final key = '${patient?.id}_${patient?.name}_${patient?.birthDate}_${patient?.phone}_${patient?.guardianName}_${patient?.guardianPhone}';
+    if (_lastSyncedPatientKey != key && !_hasProfileChanges) {
+      _lastSyncedPatientKey = key;
+      _fullNameController.text = patient?.name.isNotEmpty == true ? patient!.name : (controller.user?.name ?? '');
+      _ageController.text = _extractAgeNumber(patient?.birthDate);
+      _phoneController.text = patient?.phone.isNotEmpty == true ? patient!.phone : (controller.user?.phone ?? '');
+      _guardianNameController.text = patient?.guardianName ?? '';
+      _guardianPhoneController.text = patient?.guardianPhone ?? '';
+    }
+  }
+
+  void _onFieldChanged() {
+    final patient = controller.patient.value;
+    final originalName = patient?.name.isNotEmpty == true ? patient!.name : (controller.user?.name ?? '');
+    final originalAge = _extractAgeNumber(patient?.birthDate);
+    final originalPhone = patient?.phone.isNotEmpty == true ? patient!.phone : (controller.user?.phone ?? '');
+    final originalGuardianName = patient?.guardianName ?? '';
+    final originalGuardianPhone = patient?.guardianPhone ?? '';
+
+    final changed = _fullNameController.text.trim() != originalName.trim() ||
+        _ageController.text.trim() != originalAge.trim() ||
+        _phoneController.text.trim() != originalPhone.trim() ||
+        _guardianNameController.text.trim() != originalGuardianName.trim() ||
+        _guardianPhoneController.text.trim() != originalGuardianPhone.trim();
+
+    if (_hasProfileChanges != changed) {
+      setState(() {
+        _hasProfileChanges = changed;
+      });
+    }
+  }
+
+  Future<void> _handleSaveProfile() async {
+    final patient = controller.patient.value;
+    final name = _fullNameController.text.trim();
+    final ageStr = _ageController.text.trim();
+    final phone = _phoneController.text.trim();
+    final guardianName = _guardianNameController.text.trim();
+    final guardianPhone = _guardianPhoneController.text.trim();
+
+    String? newBirthDate = patient?.birthDate;
+    final ageNum = int.tryParse(ageStr);
+    if (ageNum != null && ageNum > 0) {
+      final birthYear = DateTime.now().year - ageNum;
+      newBirthDate = '$birthYear-01-01';
+    }
+
+    setState(() => _isSavingProfile = true);
+    await controller.updatePersonalInfo(
+      name: name,
+      birthDate: newBirthDate,
+      phone: phone,
+      guardianName: guardianName,
+      guardianPhone: guardianPhone,
+    );
+
+    _lastSyncedPatientKey = null;
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSavingProfile = false;
+      _hasProfileChanges = false;
+    });
+
+    FocusScope.of(context).unfocus();
+
+    Get.snackbar(
+      'Profile Updated',
+      'Personal information has been saved successfully.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.white,
+      colorText: const Color(0xFF0F172A),
+      margin: const EdgeInsets.all(16),
+      borderRadius: 16,
+    );
   }
 
   String _getInitials(String name) {
@@ -54,8 +147,8 @@ class _ProfileViewState extends State<ProfileView> {
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
 
-  String _calculateAge(String? birthDate) {
-    if (birthDate == null || birthDate.isEmpty) return '-';
+  String _extractAgeNumber(String? birthDate) {
+    if (birthDate == null || birthDate.isEmpty) return '';
     try {
       final birth = DateTime.parse(birthDate);
       final today = DateTime.now();
@@ -63,9 +156,9 @@ class _ProfileViewState extends State<ProfileView> {
       if (today.month < birth.month || (today.month == birth.month && today.day < birth.day)) {
         age--;
       }
-      return '$age years';
+      return age > 0 ? '$age' : '';
     } catch (_) {
-      return '-';
+      return '';
     }
   }
 
@@ -129,7 +222,7 @@ class _ProfileViewState extends State<ProfileView> {
           child: _selectedMetric != null
               ? ActivityMetricView(
                   metric: _selectedMetric!,
-                  deviceName: controller.wearable.value?.deviceName ?? 'HUAWEI Band 9',
+                  deviceName: controller.wearable.value?.deviceName ?? '',
                   initialTrend: _getInitialTrendForMetric(_selectedMetric!),
                   onBack: () => setState(() => _selectedMetric = null),
                 )
@@ -186,7 +279,10 @@ class _ProfileViewState extends State<ProfileView> {
   Widget _buildSidebarCard(Patient? patient) {
     final name = patient?.name ?? controller.user?.name ?? 'User';
     final mrn = patient?.mrn ?? '-';
-    final isUnlinked = mrn == 'UNLINKED' || mrn.isEmpty || mrn == '-';
+    final isUnlinked = mrn.trim().isEmpty ||
+        mrn == '-' ||
+        mrn.trim().toUpperCase() == 'UNLINKED' ||
+        mrn.trim().toLowerCase() == 'null';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -392,10 +488,7 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Widget _buildAccountPanel(Patient? patient, Doctor? doctor) {
-    final isUnlinked = patient == null || patient.mrn == 'UNLINKED' || patient.mrn.isEmpty || patient.mrn == '-';
-    final ageStr = _calculateAge(patient?.birthDate);
-    final fullName = patient?.name ?? controller.user?.name ?? '-';
-    final phone = patient?.phone.isNotEmpty == true ? patient!.phone : '-';
+    _syncControllersWithPatient(patient);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,46 +496,161 @@ class _ProfileViewState extends State<ProfileView> {
         _buildFieldGroup(
           title: 'Identity',
           fields: [
-            _buildReadOnlyField(label: 'Full Name', value: fullName),
-            _buildReadOnlyField(
-              label: 'Medical Record Number (MRN)',
-              value: isUnlinked ? 'Unlinked' : patient.mrn,
+            _buildEditableField(
+              label: 'Full Name',
+              controller: _fullNameController,
+              hintText: 'Enter full name',
+              onChanged: _onFieldChanged,
             ),
-            _buildReadOnlyField(label: 'Age', value: ageStr),
-            _buildReadOnlyField(label: 'Phone Number', value: phone),
+            _buildEditableField(
+              label: 'Age',
+              controller: _ageController,
+              keyboardType: TextInputType.number,
+              hintText: 'Enter age',
+              suffixText: 'years',
+              onChanged: _onFieldChanged,
+            ),
+            _buildEditableField(
+              label: 'Phone Number',
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              hintText: 'Enter phone number',
+              onChanged: _onFieldChanged,
+            ),
           ],
         ),
         const SizedBox(height: 24),
         _buildFieldGroup(
           title: 'Guardian',
           fields: [
-            _buildReadOnlyField(label: 'Guardian Name', value: patient?.guardianName?.isNotEmpty == true ? patient!.guardianName! : '-'),
-            _buildReadOnlyField(label: 'Guardian Phone', value: patient?.guardianPhone?.isNotEmpty == true ? patient!.guardianPhone! : '-'),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _buildFieldGroup(
-          title: 'Health',
-          fields: [
-            _buildReadOnlyField(
-              label: 'Allergies',
-              value: isUnlinked ? '-' : patient.allergies.isNotEmpty ? patient.allergies.join(', ') : 'None',
+            _buildEditableField(
+              label: 'Guardian Name',
+              controller: _guardianNameController,
+              hintText: 'Enter guardian name',
+              onChanged: _onFieldChanged,
             ),
-            _buildReadOnlyField(
-              label: 'Conditions',
-              value: isUnlinked ? '-' : patient.conditions.isNotEmpty ? patient.conditions.join(', ') : '-',
+            _buildEditableField(
+              label: 'Guardian Phone',
+              controller: _guardianPhoneController,
+              keyboardType: TextInputType.phone,
+              hintText: 'Enter guardian phone',
+              onChanged: _onFieldChanged,
             ),
           ],
         ),
-        const SizedBox(height: 24),
-        _buildFieldGroup(
-          title: 'Care',
-          fields: [
-            _buildReadOnlyField(label: 'Hospital', value: doctor?.hospital ?? '-'),
-            _buildReadOnlyField(label: 'Attending Doctor', value: doctor?.name ?? '-'),
-          ],
-        ),
+        if (patient?.allergies.isNotEmpty == true && !patient!.allergies.contains('None')) ...[
+          const SizedBox(height: 24),
+          _buildFieldGroup(
+            title: 'Health',
+            fields: [
+              _buildReadOnlyField(
+                label: 'Allergies',
+                value: patient.allergies.join(', '),
+              ),
+            ],
+          ),
+        ],
+        if (_hasProfileChanges) ...[
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: _isSavingProfile ? null : _handleSaveProfile,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ColorValues.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: _isSavingProfile
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      'Save',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildEditableField({
+    required String label,
+    required TextEditingController controller,
+    TextInputType keyboardType = TextInputType.text,
+    String? hintText,
+    String? suffixText,
+    required VoidCallback onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              color: ColorValues.mutedForeground,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            onChanged: (_) => onChanged(),
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: ColorValues.foreground,
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: hintText,
+              hintStyle: GoogleFonts.poppins(
+                fontSize: 14,
+                color: ColorValues.mutedForeground.withValues(alpha: 0.5),
+              ),
+              suffixText: suffixText,
+              suffixStyle: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: ColorValues.mutedForeground,
+              ),
+              filled: true,
+              fillColor: const Color(0xFFF1F5F9),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: ColorValues.primary, width: 1.5),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -794,14 +1002,14 @@ class _ProfileViewState extends State<ProfileView> {
     } else if (daily != null) {
       sleepVal = '${daily.sleepMinutes ~/ 60}h ${daily.sleepMinutes % 60}m';
     } else {
-      sleepVal = '7h 10m';
+      sleepVal = '-';
     }
 
-    final spo2Val = trends?.spo2?.headline.value ?? (daily != null ? '${daily.spo2}' : '98');
+    final spo2Val = trends?.spo2?.headline.value ?? (daily != null ? '${daily.spo2}' : '-');
     final spo2Unit = '%';
 
-    final connectedDateStr = _formatDateTime(wearable.connectedAt ?? '2026-09-15T08:30:00');
-    final syncDateStr = _formatDateTime(wearable.lastSyncAt ?? '2026-11-17T01:59:00');
+    final connectedDateStr = wearable.connectedAt != null ? _formatDateTime(wearable.connectedAt) : '-';
+    final syncDateStr = wearable.lastSyncAt != null ? _formatDateTime(wearable.lastSyncAt) : '-';
 
     final hrPoints = trends?.heartRate?.points.where((p) => p.value != null).map((p) => p.value!).toList();
 
@@ -901,7 +1109,7 @@ class _ProfileViewState extends State<ProfileView> {
                           children: [
                             Expanded(
                               child: Text(
-                                wearable.deviceName ?? 'HUAWEI Band 9',
+                                wearable.deviceName ?? '',
                                 style: GoogleFonts.poppins(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w600,
@@ -1471,9 +1679,9 @@ class _ProfileViewState extends State<ProfileView> {
 
   void _showDisconnectDialog() {
     final wearable = controller.wearable.value;
-    final deviceName = wearable?.deviceName ?? 'HUAWEI Band 9';
-    final connectedDateStr = _formatDateTime(wearable?.connectedAt ?? '2026-09-15T08:30:00');
-    final syncDateStr = _formatDateTime(wearable?.lastSyncAt ?? '2026-11-18T03:55:00');
+    final deviceName = wearable?.deviceName ?? '';
+    final connectedDateStr = wearable?.connectedAt != null ? _formatDateTime(wearable!.connectedAt) : '-';
+    final syncDateStr = wearable?.lastSyncAt != null ? _formatDateTime(wearable!.lastSyncAt) : '-';
 
     showDialog(
       context: context,

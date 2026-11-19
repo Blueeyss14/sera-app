@@ -55,6 +55,12 @@ class SessionService extends GetxService {
     await prefs.setString(_keyUser, jsonEncode(authUser.toJson()));
   }
 
+  Future<void> saveUser(AuthUser updatedUser) async {
+    final prefs = await SharedPreferences.getInstance();
+    user.value = updatedUser;
+    await prefs.setString(_keyUser, jsonEncode(updatedUser.toJson()));
+  }
+
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     token.value = null;

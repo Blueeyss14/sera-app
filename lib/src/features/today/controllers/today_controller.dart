@@ -51,14 +51,18 @@ class TodayController extends GetxController {
     try {
       final now = DateTime.now();
       final dateStr = DateFormat('yyyy-MM-dd').format(now);
-      final patientId = SessionService.to.user.value?.patientId ?? 'p-001';
+      final me = await ApiService.instance.getMe();
+      final currentUser = me ?? SessionService.to.user.value;
+      final patientId = currentUser?.patientId;
 
       final results = await Future.wait([
         ApiService.instance.getTodaySchedule(dateStr),
         ApiService.instance.getPatientAdherence(),
         ApiService.instance.getPatientActivePlan(),
         ApiService.instance.getWearableStatus(),
-        ApiService.instance.getPatientDetail(patientId),
+        patientId != null && patientId.isNotEmpty
+            ? ApiService.instance.getPatientDetail(patientId)
+            : Future.value(null),
       ]);
 
       schedule.value = results[0] as TodayScheduleResponse?;

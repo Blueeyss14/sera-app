@@ -19,6 +19,28 @@ class AuthUser {
     this.doctorId,
   });
 
+  AuthUser copyWith({
+    String? id,
+    String? role,
+    String? email,
+    String? name,
+    String? phone,
+    bool? isVerified,
+    String? patientId,
+    String? doctorId,
+  }) {
+    return AuthUser(
+      id: id ?? this.id,
+      role: role ?? this.role,
+      email: email ?? this.email,
+      name: name ?? this.name,
+      phone: phone ?? this.phone,
+      isVerified: isVerified ?? this.isVerified,
+      patientId: patientId ?? this.patientId,
+      doctorId: doctorId ?? this.doctorId,
+    );
+  }
+
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
       id: json['id']?.toString() ?? '',
@@ -27,8 +49,8 @@ class AuthUser {
       name: json['name']?.toString() ?? '',
       phone: json['phone']?.toString(),
       isVerified: json['isVerified'] == true,
-      patientId: json['patientId']?.toString(),
-      doctorId: json['doctorId']?.toString(),
+      patientId: json['patientId']?.toString() ?? json['patient_id']?.toString(),
+      doctorId: json['doctorId']?.toString() ?? json['doctor_id']?.toString(),
     );
   }
 
@@ -93,6 +115,38 @@ class Patient {
     this.allergies = const [],
     this.assignedDoctorId,
   });
+
+  Patient copyWith({
+    String? id,
+    String? mrn,
+    String? name,
+    String? gender,
+    String? birthDate,
+    String? phone,
+    String? guardianName,
+    String? guardianPhone,
+    String? address,
+    String? primaryDiagnosis,
+    List<String>? conditions,
+    List<String>? allergies,
+    String? assignedDoctorId,
+  }) {
+    return Patient(
+      id: id ?? this.id,
+      mrn: mrn ?? this.mrn,
+      name: name ?? this.name,
+      gender: gender ?? this.gender,
+      birthDate: birthDate ?? this.birthDate,
+      phone: phone ?? this.phone,
+      guardianName: guardianName ?? this.guardianName,
+      guardianPhone: guardianPhone ?? this.guardianPhone,
+      address: address ?? this.address,
+      primaryDiagnosis: primaryDiagnosis ?? this.primaryDiagnosis,
+      conditions: conditions ?? this.conditions,
+      allergies: allergies ?? this.allergies,
+      assignedDoctorId: assignedDoctorId ?? this.assignedDoctorId,
+    );
+  }
 
   factory Patient.fromJson(Map<String, dynamic> json) {
     return Patient(
