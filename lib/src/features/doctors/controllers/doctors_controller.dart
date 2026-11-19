@@ -7,8 +7,10 @@ import '../../../../core/models/patient_models.dart';
 
 class DoctorsController extends GetxController {
   final RxList<Doctor> doctors = <Doctor>[].obs;
+  final RxList<ConsultationRequestItem> myRequests = <ConsultationRequestItem>[].obs;
   final RxBool isLoading = true.obs;
   final RxBool actionLoading = false.obs;
+  final RxBool requestsLoading = false.obs;
   final searchController = TextEditingController();
   Timer? _debounceTimer;
 
@@ -16,6 +18,7 @@ class DoctorsController extends GetxController {
   void onInit() {
     super.onInit();
     fetchDoctors();
+    fetchMyRequests();
   }
 
   void onSearchChanged(String query) {
@@ -36,6 +39,17 @@ class DoctorsController extends GetxController {
     }
   }
 
+  Future<void> fetchMyRequests() async {
+    requestsLoading.value = true;
+    try {
+      final list = await ApiService.instance.getConsultationRequests();
+      myRequests.value = list;
+    } catch (_) {
+    } finally {
+      requestsLoading.value = false;
+    }
+  }
+
   Future<Doctor?> getDoctorDetail(String doctorId) async {
     try {
       return await ApiService.instance.getDoctorById(doctorId);
@@ -44,11 +58,26 @@ class DoctorsController extends GetxController {
     }
   }
 
-  Future<bool> requestConsultation(String doctorId, [String? notes]) async {
+  Future<DoctorAvailableSlots?> fetchAvailableSlots(String doctorId, String date) async {
+    return await ApiService.instance.getDoctorAvailableSlots(doctorId, date);
+  }
+
+  Future<bool> requestConsultation({
+    required String doctorId,
+    String? scheduledDate,
+    String? scheduledTime,
+    String? notes,
+  }) async {
     actionLoading.value = true;
     try {
-      await ApiService.instance.requestConsultation(doctorId, notes);
+      await ApiService.instance.requestConsultation(
+        doctorId: doctorId,
+        scheduledDate: scheduledDate,
+        scheduledTime: scheduledTime,
+        notes: notes,
+      );
       await fetchDoctors(searchController.text);
+      await fetchMyRequests();
       return true;
     } catch (_) {
       return false;
@@ -62,6 +91,7 @@ class DoctorsController extends GetxController {
     try {
       await ApiService.instance.cancelConsultation(requestId);
       await fetchDoctors(searchController.text);
+      await fetchMyRequests();
       return true;
     } catch (_) {
       return false;

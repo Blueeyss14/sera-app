@@ -246,6 +246,109 @@ class Doctor {
   }
 }
 
+class DoctorSlot {
+  final String time;
+  final bool isAvailable;
+
+  DoctorSlot({
+    required this.time,
+    required this.isAvailable,
+  });
+
+  factory DoctorSlot.fromJson(Map<String, dynamic> json) {
+    return DoctorSlot(
+      time: json['time']?.toString() ?? '',
+      isAvailable: json['isAvailable'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'time': time,
+      'isAvailable': isAvailable,
+    };
+  }
+}
+
+class DoctorAvailableSlots {
+  final String doctorId;
+  final String doctorName;
+  final String specialty;
+  final String date;
+  final List<DoctorSlot> slots;
+
+  DoctorAvailableSlots({
+    required this.doctorId,
+    required this.doctorName,
+    required this.specialty,
+    required this.date,
+    required this.slots,
+  });
+
+  factory DoctorAvailableSlots.fromJson(Map<String, dynamic> json) {
+    return DoctorAvailableSlots(
+      doctorId: json['doctorId']?.toString() ?? '',
+      doctorName: json['doctorName']?.toString() ?? '',
+      specialty: json['specialty']?.toString() ?? '',
+      date: json['date']?.toString() ?? '',
+      slots: (json['slots'] as List<dynamic>?)
+              ?.map((e) => DoctorSlot.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+class ConsultationRequestItem {
+  final String id;
+  final String userId;
+  final String userName;
+  final String? userEmail;
+  final String? userPhone;
+  final String doctorId;
+  final String? doctorName;
+  final String status;
+  final String? scheduledDate;
+  final String? scheduledTime;
+  final String? notes;
+  final String createdAt;
+  final String updatedAt;
+
+  ConsultationRequestItem({
+    required this.id,
+    required this.userId,
+    required this.userName,
+    this.userEmail,
+    this.userPhone,
+    required this.doctorId,
+    this.doctorName,
+    required this.status,
+    this.scheduledDate,
+    this.scheduledTime,
+    this.notes,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory ConsultationRequestItem.fromJson(Map<String, dynamic> json) {
+    return ConsultationRequestItem(
+      id: json['id']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? json['user_id']?.toString() ?? '',
+      userName: json['userName']?.toString() ?? json['user_name']?.toString() ?? '',
+      userEmail: json['userEmail']?.toString() ?? json['user_email']?.toString(),
+      userPhone: json['userPhone']?.toString() ?? json['user_phone']?.toString(),
+      doctorId: json['doctorId']?.toString() ?? json['doctor_id']?.toString() ?? '',
+      doctorName: json['doctorName']?.toString() ?? json['doctor_name']?.toString(),
+      status: json['status']?.toString() ?? 'pending',
+      scheduledDate: json['scheduledDate']?.toString() ?? json['scheduled_date']?.toString(),
+      scheduledTime: json['scheduledTime']?.toString() ?? json['scheduled_time']?.toString(),
+      notes: json['notes']?.toString(),
+      createdAt: json['createdAt']?.toString() ?? json['created_at']?.toString() ?? '',
+      updatedAt: json['updatedAt']?.toString() ?? json['updated_at']?.toString() ?? '',
+    );
+  }
+}
+
 class CarePlanItem {
   final String id;
   final String kind;

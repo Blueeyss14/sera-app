@@ -176,14 +176,54 @@ class ApiService {
     return Doctor.fromJson(resData['data'] as Map<String, dynamic>);
   }
 
-  Future<Map<String, dynamic>> requestConsultation(String doctorId, [String? notes]) async {
-    final url = Uri.parse('$_baseUrl/patient/consultation-requests');
+  Future<DoctorAvailableSlots?> getDoctorAvailableSlots(String doctorId, [String? date]) async {
+    final q = date != null && date.isNotEmpty ? '?date=$date' : '';
+    final url = Uri.parse('$_baseUrl/patient/doctors/$doctorId/available-slots$q');
+    try {
+      final resData = await _get(url);
+      final data = resData['data'];
+      if (data == null) return null;
+      return DoctorAvailableSlots.fromJson(data as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>> requestConsultation({
+    required String doctorId,
+    String? scheduledDate,
+    String? scheduledTime,
+    String? notes,
+  }) async {
     final body = jsonEncode({
       'doctorId': doctorId,
+      if (scheduledDate != null && scheduledDate.isNotEmpty) 'scheduledDate': scheduledDate,
+      if (scheduledTime != null && scheduledTime.isNotEmpty) 'scheduledTime': scheduledTime,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
     });
-    final resData = await _post(url, body: body);
-    return resData['data'] as Map<String, dynamic>? ?? {};
+    try {
+      final url = Uri.parse('$_baseUrl/patient/consultations');
+      final resData = await _post(url, body: body);
+      return resData['data'] as Map<String, dynamic>? ?? {};
+    } catch (_) {
+      final fallbackUrl = Uri.parse('$_baseUrl/patient/consultation-requests');
+      final resData = await _post(fallbackUrl, body: body);
+      return resData['data'] as Map<String, dynamic>? ?? {};
+    }
+  }
+
+  Future<List<ConsultationRequestItem>> getConsultationRequests() async {
+    try {
+      final url = Uri.parse('$_baseUrl/patient/consultations');
+      final resData = await _get(url);
+      final list = resData['data'] as List<dynamic>? ?? [];
+      return list.map((e) => ConsultationRequestItem.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (_) {
+      final fallbackUrl = Uri.parse('$_baseUrl/patient/consultation-requests');
+      final resData = await _get(fallbackUrl);
+      final list = resData['data'] as List<dynamic>? ?? [];
+      return list.map((e) => ConsultationRequestItem.fromJson(e as Map<String, dynamic>)).toList();
+    }
   }
 
   Future<void> cancelConsultation(String requestId) async {

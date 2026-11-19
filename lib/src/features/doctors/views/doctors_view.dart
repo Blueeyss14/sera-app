@@ -4,10 +4,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/models/patient_models.dart';
-import '../../../../res/assets.dart';
 import '../../../../res/colors.dart';
 import '../controllers/doctors_controller.dart';
 import 'doctor_profile_view.dart';
+import 'doctor_schedule_view.dart';
+import '../widgets/active_request_banner.dart';
+import '../widgets/doctor_card.dart';
 
 class DoctorsView extends GetView<DoctorsController> {
   const DoctorsView({super.key});
@@ -142,18 +144,29 @@ class DoctorsView extends GetView<DoctorsController> {
                 }
 
                 return RefreshIndicator(
-                  onRefresh: () => controller.fetchDoctors(controller.searchController.text),
+                  onRefresh: () async {
+                    await controller.fetchDoctors(controller.searchController.text);
+                    await controller.fetchMyRequests();
+                  },
                   color: ColorValues.primary,
-                  child: ListView.builder(
+                  child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(
                       parent: BouncingScrollPhysics(),
                     ),
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                    itemCount: controller.doctors.length,
-                    itemBuilder: (context, index) {
-                      final doc = controller.doctors[index];
-                      return _buildDoctorCard(context, doc);
-                    },
+                    children: [
+                      ActiveRequestBanner(
+                        requests: controller.myRequests,
+                        onCancel: (id) => controller.cancelConsultation(id),
+                      ),
+                      ...controller.doctors.map(
+                        (doc) => DoctorCard(
+                          doctor: doc,
+                          onViewProfile: () => _openDoctorProfile(doc),
+                          onConsult: () => _openScheduleBooking(doc),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }),
@@ -164,228 +177,12 @@ class DoctorsView extends GetView<DoctorsController> {
     );
   }
 
-  Widget _buildDoctorCard(BuildContext context, Doctor doc) {
-    final isPending = doc.consultationStatus == 'pending';
-    final isApproved = doc.consultationStatus == 'approved';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: ColorValues.card,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: ColorValues.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: () => _openDoctorProfile(doc),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: ColorValues.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: ColorValues.border.withValues(alpha: 0.6)),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: doc.avatarUrl != null
-                          ? Image.network(
-                              doc.avatarUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (ctx, err, stack) => _buildCardAvatarFallback(),
-                            )
-                          : _buildCardAvatarFallback(),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            doc.name,
-                            style: GoogleFonts.poppins(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w600,
-                              color: ColorValues.foreground,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Row(
-                            children: [
-                              const Icon(
-                                LucideIcons.stethoscope,
-                                size: 13,
-                                color: ColorValues.primary,
-                              ),
-                              const SizedBox(width: 5),
-                              Expanded(
-                                child: Text(
-                                  doc.specialty,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: ColorValues.primary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              const Icon(
-                                LucideIcons.building2,
-                                size: 13,
-                                color: ColorValues.mutedForeground,
-                              ),
-                              const SizedBox(width: 5),
-                              Expanded(
-                                child: Text(
-                                  doc.hospital,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w400,
-                                    color: ColorValues.mutedForeground,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                if (doc.bio != null && doc.bio!.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    doc.bio!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: ColorValues.mutedForeground,
-                      height: 1.45,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 14),
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: ColorValues.border.withValues(alpha: 0.6),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (isPending)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(LucideIcons.clock, size: 12, color: Colors.amber),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Pending Confirmation',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.amber.shade900,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else if (isApproved)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: ColorValues.success.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: ColorValues.success.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(LucideIcons.circleCheck, size: 12, color: ColorValues.success),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Connected',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: ColorValues.success,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      const SizedBox.shrink(),
-                    ElevatedButton(
-                      onPressed: () => _openDoctorProfile(doc),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: ColorValues.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      ),
-                      child: Text(
-                        'View Profile',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCardAvatarFallback() {
-    return Center(
-      child: Image.asset(
-        ImageAssets.seraGreeting,
-        width: 44,
-        fit: BoxFit.contain,
-      ),
-    );
-  }
-
   void _openDoctorProfile(Doctor doc) {
     Get.to(() => DoctorProfileView(doctor: doc));
+  }
+
+  void _openScheduleBooking(Doctor doc) async {
+    await Get.to(() => DoctorScheduleView(doctor: doc));
+    controller.fetchDoctors(controller.searchController.text);
   }
 }
