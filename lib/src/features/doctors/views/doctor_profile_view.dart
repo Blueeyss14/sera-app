@@ -80,22 +80,22 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, color: ColorValues.foreground, size: 22),
+          icon: const Icon(LucideIcons.arrowLeft, color: ColorValues.foreground, size: 20),
           onPressed: () => Get.back(),
         ),
         title: Text(
-          'Doctor Profile',
+          'Back to Find Doctors',
           style: GoogleFonts.poppins(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: ColorValues.foreground,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: ColorValues.mutedForeground,
           ),
         ),
-        centerTitle: true,
+        titleSpacing: 0,
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 36, 20, 32),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         child: Column(
           children: [
             DoctorProfileHeader(

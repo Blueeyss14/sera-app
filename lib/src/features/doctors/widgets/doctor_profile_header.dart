@@ -29,37 +29,72 @@ class DoctorProfileHeader extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: ColorValues.card,
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(color: ColorValues.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const RingOrnament(),
+          Container(
+            height: 140,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [ColorValues.primary, Color(0xFF0284C7)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Stack(
+              children: [
+                const RingOrnament(),
+                Positioned(
+                  top: 14,
+                  left: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Sera Clinician Network',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Transform.translate(
-                  offset: const Offset(0, -48),
+                  offset: const Offset(0, -40),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Container(
-                        width: 96,
-                        height: 96,
+                        width: 88,
+                        height: 88,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: Colors.white, width: 4),
                           boxShadow: [
                             BoxShadow(
@@ -301,9 +336,9 @@ class DoctorProfileHeader extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
-      icon: const Icon(LucideIcons.calendarPlus, size: 14),
+      icon: const Icon(LucideIcons.send, size: 14),
       label: Text(
-        'Book Consultation',
+        'Request Consultation',
         style: GoogleFonts.poppins(
           fontSize: 12,
           fontWeight: FontWeight.w600,
