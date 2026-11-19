@@ -212,15 +212,9 @@ class ApiService {
       if (scheduledTime != null && scheduledTime.isNotEmpty) 'scheduledTime': scheduledTime,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
     });
-    try {
-      final url = Uri.parse('$_baseUrl/patient/consultations');
-      final resData = await _post(url, body: body);
-      return resData['data'] as Map<String, dynamic>? ?? {};
-    } catch (_) {
-      final fallbackUrl = Uri.parse('$_baseUrl/patient/consultation-requests');
-      final resData = await _post(fallbackUrl, body: body);
-      return resData['data'] as Map<String, dynamic>? ?? {};
-    }
+    final url = Uri.parse('$_baseUrl/patient/consultation-requests');
+    final resData = await _post(url, body: body);
+    return resData['data'] as Map<String, dynamic>? ?? {};
   }
 
   Future<List<ConsultationRequestItem>> getConsultationRequests() async {
