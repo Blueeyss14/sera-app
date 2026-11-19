@@ -62,6 +62,10 @@ class DoctorsController extends GetxController {
     return await ApiService.instance.getDoctorAvailableSlots(doctorId, date);
   }
 
+  Future<List<String>> fetchAvailableDates(String doctorId) async {
+    return await ApiService.instance.getDoctorAvailableDates(doctorId);
+  }
+
   Future<bool> requestConsultation({
     required String doctorId,
     String? scheduledDate,

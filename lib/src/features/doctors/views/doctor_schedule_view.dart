@@ -25,10 +25,11 @@ class _DoctorScheduleViewState extends State<DoctorScheduleView> {
   final controller = Get.find<DoctorsController>();
   final TextEditingController _notesController = TextEditingController();
 
-  late List<DateTime> _availableDates;
-  late DateTime _selectedDate;
+  List<DateTime> _availableDates = [];
+  DateTime? _selectedDate;
   String? _selectedTime;
 
+  bool _isLoadingDates = true;
   bool _isLoadingSlots = false;
   bool _isSubmitting = false;
   List<DoctorSlot> _slots = [];
@@ -36,16 +37,35 @@ class _DoctorScheduleViewState extends State<DoctorScheduleView> {
   @override
   void initState() {
     super.initState();
-    _initDates();
-    _fetchSlotsForDate(_selectedDate);
+    _loadAvailableDates();
   }
 
-  void _initDates() {
-    final now = DateTime.now();
-    _availableDates = List.generate(14, (index) {
-      return DateTime(now.year, now.month, now.day).add(Duration(days: index + 1));
+  Future<void> _loadAvailableDates() async {
+    setState(() {
+      _isLoadingDates = true;
     });
-    _selectedDate = _availableDates.first;
+
+    final dateStrings = await controller.fetchAvailableDates(widget.doctor.id);
+    final parsedDates = <DateTime>[];
+
+    for (final ds in dateStrings) {
+      try {
+        final parsed = DateTime.parse(ds);
+        parsedDates.add(DateTime(parsed.year, parsed.month, parsed.day));
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoadingDates = false;
+        _availableDates = parsedDates;
+        _selectedDate = parsedDates.isNotEmpty ? parsedDates.first : null;
+      });
+
+      if (_selectedDate != null) {
+        await _fetchSlotsForDate(_selectedDate!);
+      }
+    }
   }
 
   Future<void> _fetchSlotsForDate(DateTime date) async {
@@ -66,7 +86,7 @@ class _DoctorScheduleViewState extends State<DoctorScheduleView> {
   }
 
   Future<void> _submitConsultation() async {
-    if (_selectedTime == null) {
+    if (_selectedDate == null || _selectedTime == null) {
       Get.snackbar(
         'Time slot required',
         'Please select a consultation time slot before submitting.',
@@ -81,7 +101,7 @@ class _DoctorScheduleViewState extends State<DoctorScheduleView> {
 
     setState(() => _isSubmitting = true);
 
-    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate!);
     final notes = _notesController.text.trim().isNotEmpty
         ? _notesController.text.trim()
         : null;
@@ -99,7 +119,7 @@ class _DoctorScheduleViewState extends State<DoctorScheduleView> {
         BookingSuccessSheet.show(
           context: context,
           doctor: widget.doctor,
-          scheduledDate: _selectedDate,
+          scheduledDate: _selectedDate!,
           scheduledTime: _selectedTime!,
         );
       } else {
@@ -156,28 +176,71 @@ class _DoctorScheduleViewState extends State<DoctorScheduleView> {
                   children: [
                     ScheduleDoctorHeader(doctor: widget.doctor),
                     const SizedBox(height: 20),
-                    ScheduleDatePicker(
-                      dates: _availableDates,
-                      selectedDate: _selectedDate,
-                      onDateSelected: (date) {
-                        setState(() => _selectedDate = date);
-                        _fetchSlotsForDate(date);
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ScheduleTimeSlots(
-                      slots: _slots,
-                      selectedTime: _selectedTime,
-                      isLoading: _isLoadingSlots,
-                      onSlotToggled: (time) {
-                        setState(() => _selectedTime = time);
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    _buildNotesSection(),
-                    const SizedBox(height: 20),
-                    _buildNoticeBanner(),
-                    const SizedBox(height: 24),
+                    if (_isLoadingDates)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2, color: ColorValues.primary),
+                        ),
+                      )
+                    else if (_availableDates.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: ColorValues.muted.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: ColorValues.border),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(LucideIcons.calendarX2, size: 36, color: ColorValues.mutedForeground),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No consultation dates available',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: ColorValues.foreground,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'This doctor currently has no scheduled consultation dates. Please check back later.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: ColorValues.mutedForeground,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else ...[
+                      ScheduleDatePicker(
+                        dates: _availableDates,
+                        selectedDate: _selectedDate!,
+                        onDateSelected: (date) {
+                          setState(() => _selectedDate = date);
+                          _fetchSlotsForDate(date);
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      ScheduleTimeSlots(
+                        slots: _slots,
+                        selectedTime: _selectedTime,
+                        isLoading: _isLoadingSlots,
+                        onSlotToggled: (time) {
+                          setState(() => _selectedTime = time);
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      _buildNotesSection(),
+                      const SizedBox(height: 20),
+                      _buildNoticeBanner(),
+                      const SizedBox(height: 24),
+                    ],
                   ],
                 ),
               ),
@@ -275,7 +338,7 @@ class _DoctorScheduleViewState extends State<DoctorScheduleView> {
   }
 
   Widget _buildBottomBar() {
-    final canSubmit = _selectedTime != null && !_isSubmitting;
+    final canSubmit = _selectedDate != null && _selectedTime != null && !_isSubmitting;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),

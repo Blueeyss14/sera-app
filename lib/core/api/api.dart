@@ -189,6 +189,17 @@ class ApiService {
     }
   }
 
+  Future<List<String>> getDoctorAvailableDates(String doctorId) async {
+    final url = Uri.parse('$_baseUrl/patient/doctors/$doctorId/available-dates');
+    try {
+      final resData = await _get(url);
+      final list = resData['data'] as List<dynamic>? ?? [];
+      return list.map((e) => e.toString()).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   Future<Map<String, dynamic>> requestConsultation({
     required String doctorId,
     String? scheduledDate,
