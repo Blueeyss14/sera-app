@@ -30,10 +30,7 @@ class SplashView extends GetView<SplashController> {
               const SizedBox(height: 28),
 
               // Brand Logo in inverted/white style
-              const BrandLogo(
-                size: BrandLogoSize.lg,
-                isInverted: true,
-              ),
+              const BrandLogo(size: BrandLogoSize.lg, isInverted: true),
               const SizedBox(height: 10),
 
               // Tagline
@@ -87,27 +84,22 @@ class _SplashMascotCardState extends State<_SplashMascotCard>
       animation: _animController,
       builder: (context, child) {
         final double dy = -7.0 * math.sin(_animController.value * math.pi);
-        return Transform.translate(
-          offset: Offset(0, dy),
-          child: child,
-        );
+        return Transform.translate(offset: Offset(0, dy), child: child);
       },
       child: Container(
         width: 136,
         height: 136,
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(32),
+          // borderRadius: BorderRadius.circular(32),
+          shape: BoxShape.circle,
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.22),
             width: 1.2,
           ),
         ),
         padding: const EdgeInsets.all(22),
-        child: Image.asset(
-          ImageAssets.seraGreeting,
-          fit: BoxFit.contain,
-        ),
+        child: Image.asset(ImageAssets.seraGreeting, fit: BoxFit.contain),
       ),
     );
   }
