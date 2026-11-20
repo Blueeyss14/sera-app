@@ -869,11 +869,11 @@ class _ProfileViewState extends State<ProfileView> {
 
   Widget _buildAdherenceSummaryCards(AdherenceMetricsResponse? adherence) {
     final summary = adherence?.summary;
-    final medAvg = summary?.medicationAverage ?? (adherence != null && adherence.adherencePercentage > 0 ? adherence.adherencePercentage : 86);
-    final actAvg = summary?.activityAverage ?? 80;
+    final medAvg = summary?.medicationAverage ?? 0;
+    final actAvg = summary?.activityAverage ?? 0;
     final lowest = summary?.lowest;
 
-    String lowestText = 'Medication 0% · Saturday, 15 Nov';
+    String lowestText = 'No data';
     if (lowest != null) {
       final kindStr = lowest['kind'] == 'medication' ? 'Medication' : 'Activity';
       final percentStr = '${lowest['percent'] ?? 0}%';
